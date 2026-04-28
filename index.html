@@ -1,61 +1,673 @@
-import React, { useState, useMemo } from 'react';
-import {
-  LayoutDashboard, Eye, Heart, Target, GraduationCap, Megaphone, BookOpen,
-  ChevronDown, ChevronRight, Calendar, RefreshCw, Search, X, MessageSquare,
-  AlertTriangle, ArrowUpRight, ArrowDownRight, Send, Sparkles, AlertCircle,
-  Filter, Info, Minus
-} from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AD Education — Performance Cockpit</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F8F9FA;
+  --surface: #FFFFFF;
+  --surface-alt: #FAFBFC;
+  --border: #E8EAED;
+  --border-strong: #DADCE0;
+  --text: #202124;
+  --text-muted: #5F6368;
+  --text-subtle: #80868B;
+  --brand: #137333;
+  --brand-hover: #0F5E29;
+  --brand-light: #E6F4EA;
+  --positive: #137333;
+  --positive-soft: #E6F4EA;
+  --negative: #C5221F;
+  --negative-soft: #FCE8E6;
+  --warning: #E37400;
+  --warning-soft: #FEF7E0;
+  --info: #1A73E8;
+  --info-soft: #E8F0FE;
+  --voice: #FAFBFC;
+  --nav-bg: #202124;
+  --nav-hover: #2D2F31;
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+}
 
-/* ════════════════════════════════════════════════════════════════════
-   AD EDUCATION — PERFORMANCE COCKPIT
-   Looker-like BI dashboard, single-file React component
-   ════════════════════════════════════════════════════════════════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input { font-family: inherit; }
+.tabular { font-variant-numeric: tabular-nums; }
 
-/* ── Design tokens ─────────────────────────────────────────── */
-const T = {
-  bg: '#F8F9FA',
-  surface: '#FFFFFF',
-  surfaceAlt: '#FAFBFC',
-  border: '#E8EAED',
-  borderStrong: '#DADCE0',
-  text: '#202124',
-  textMuted: '#5F6368',
-  textSubtle: '#80868B',
-  brand: '#137333',
-  brandHover: '#0F5E29',
-  brandLight: '#E6F4EA',
-  positive: '#137333',
-  positiveSoft: '#E6F4EA',
-  negative: '#C5221F',
-  negativeSoft: '#FCE8E6',
-  warning: '#E37400',
-  warningSoft: '#FEF7E0',
-  info: '#1A73E8',
-  infoSoft: '#E8F0FE',
-  voice: '#FAFBFC',
-  navBg: '#202124',
-  navHover: '#2D2F31',
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #BDC1C6; }
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--nav-bg);
+  color: #E8EAED;
+  display: flex; flex-direction: column;
+  z-index: 50;
+}
+.sidebar-brand {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #2D2F31;
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-logo {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--brand);
+  display: grid; place-items: center;
+  color: white; font-weight: 700; font-size: 13px;
+}
+.brand-text-1 { font-size: 14px; font-weight: 600; color: white; letter-spacing: -0.2px; }
+.brand-text-2 { font-size: 10.5px; color: #9AA0A6; text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+
+.nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+.nav-item {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  color: #BDC1C6; font-size: 13px;
+  border-left: 3px solid transparent;
+  transition: all .15s;
+  text-align: left;
+}
+.nav-item:hover { color: white; background: rgba(255,255,255,0.04); }
+.nav-item.active {
+  color: white; background: rgba(19,115,51,0.12);
+  border-left-color: var(--brand);
+  font-weight: 500;
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.75; }
+.nav-item.active svg { opacity: 1; }
+.nav-item .hint { margin-left: auto; font-size: 9.5px; color: #80868B; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid #2D2F31; }
+.sidebar-footer .label { font-size: 10.5px; color: #80868B; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.school-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.school-pills span {
+  padding: 2px 8px; border-radius: 3px;
+  background: #2D2F31; color: #E8EAED;
+  font-size: 10.5px; font-weight: 500;
+}
+
+/* ── Topbar ──────────────────────────────────────────── */
+.topbar {
+  position: fixed; top: 0; right: 0; left: var(--sidebar-w);
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  z-index: 40;
+}
+.topbar-left .breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--text-muted); margin-bottom: 2px;
+}
+.topbar-left h1 { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.filter-pill {
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 4px;
+  font-size: 12px; color: var(--text);
+  transition: border-color .15s;
+}
+.filter-pill:hover { border-color: var(--border-strong); }
+.filter-pill .lbl { color: var(--text-muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.filter-pill .val { font-weight: 500; }
+.filter-pill .chev { color: var(--text-muted); }
+.filter-dropdown {
+  position: absolute; top: calc(100% + 4px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  min-width: 180px; padding: 4px 0;
+  z-index: 100;
+  display: none;
+}
+.filter-pill.open .filter-dropdown { display: block; }
+.filter-dropdown button {
+  display: block; width: 100%; text-align: left;
+  padding: 7px 14px; font-size: 12px; color: var(--text);
+}
+.filter-dropdown button:hover { background: var(--bg); }
+.filter-dropdown button.active { color: var(--brand); font-weight: 500; }
+
+.period-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: 4px; font-size: 12px;
+}
+.period-pill .lbl { color: var(--text-muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.period-pill .vs { color: var(--text-subtle); margin-left: 4px; }
+
+.update-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: var(--brand-light); color: var(--brand);
+  border-radius: 4px;
+  font-size: 11px; font-weight: 500;
+}
+
+/* ── Main ────────────────────────────────────────────── */
+main {
+  margin-left: var(--sidebar-w);
+  margin-top: var(--topbar-h);
+  padding: 24px 28px 80px;
+  min-height: calc(100vh - var(--topbar-h));
+}
+
+/* ── Voice-over ──────────────────────────────────────── */
+.voiceover {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px;
+  background: var(--voice);
+  border-left: 3px solid var(--brand);
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+  font-size: 12.5px; line-height: 1.55;
+}
+.voiceover.warning { border-left-color: var(--warning); }
+.voiceover.positive { border-left-color: var(--positive); }
+.voiceover.negative { border-left-color: var(--negative); }
+.voiceover svg { flex-shrink: 0; margin-top: 2px; color: var(--brand); }
+.voiceover.warning svg { color: var(--warning); }
+.voiceover.positive svg { color: var(--positive); }
+.voiceover.negative svg { color: var(--negative); }
+.voiceover strong { color: var(--text); font-weight: 600; }
+
+/* ── Section title ───────────────────────────────────── */
+.section-title {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 0 12px;
+}
+.section-title h3 { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.1px; }
+.section-title .badge {
+  padding: 2px 8px;
+  background: var(--bg); color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;
+}
+
+/* ── KPI Card ────────────────────────────────────────── */
+.kpi-grid { display: grid; gap: 12px; margin-bottom: 16px; }
+.kpi-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.kpi-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.kpi-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.kpi-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.kpi-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px;
+  transition: box-shadow .15s;
+}
+.kpi-card:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.kpi-card.large { padding: 20px 22px; }
+.kpi-label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  font-weight: 500; margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 24px; font-weight: 600; color: var(--text);
+  letter-spacing: -0.5px; font-variant-numeric: tabular-nums;
+}
+.kpi-card.large .kpi-value { font-size: 30px; }
+.kpi-unit { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-left: 4px; }
+.kpi-meta { margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kpi-target { margin-top: 12px; }
+.kpi-target-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.kpi-target-row .lbl { font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.3px; }
+.kpi-target-row .val { font-size: 11px; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi-target-sub { font-size: 10.5px; color: var(--text-subtle); margin-top: 4px; }
+.kpi-sub { font-size: 11px; color: var(--text-subtle); margin-top: 6px; }
+.survey-date { font-size: 10.5px; color: var(--text-subtle); }
+
+/* ── Delta pill ──────────────────────────────────────── */
+.delta {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 6px; border-radius: 3px;
+  font-size: 11px; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.delta.up { color: var(--positive); background: var(--positive-soft); }
+.delta.down { color: var(--negative); background: var(--negative-soft); }
+.delta.flat { color: var(--text-muted); background: var(--bg); }
+.delta svg { width: 10px; height: 10px; }
+
+/* ── Progress bar ────────────────────────────────────── */
+.progress { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+.mini-bar { width: 70px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.mini-bar-fill { height: 100%; border-radius: 3px; }
+
+/* ── Tables ──────────────────────────────────────────── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.table-scroll { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  padding: 11px 14px;
+  font-size: 10.5px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  text-align: left;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table th.num { text-align: right; }
+.data-table td {
+  padding: 11px 14px;
+  font-size: 12.5px; color: var(--text);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg); }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table td.num-strong { font-weight: 600; }
+.cell-school { display: flex; align-items: center; gap: 10px; }
+.cell-school .bar { width: 4px; height: 22px; border-radius: 2px; }
+.cell-school .name { font-weight: 600; }
+.cell-campus .name { font-weight: 500; font-size: 12.5px; }
+.cell-campus .school { font-size: 10.5px; color: var(--text-subtle); margin-top: 1px; }
+.cell-program { display: flex; align-items: center; gap: 10px; }
+.cell-program .pill {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 22px;
+  background: var(--brand-light); color: var(--brand);
+  border-radius: 3px; font-size: 11px; font-weight: 600;
+}
+.cell-program .pill.master { background: var(--info-soft); color: var(--info); }
+.cell-program .deg { color: var(--text-muted); font-size: 12.5px; }
+.cell-num-delta { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.cell-pct-target { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.cell-pct-target .pct-val { font-weight: 600; }
+
+/* ── Card boxes ──────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.card-subtitle { font-size: 11px; color: var(--text-subtle); margin-bottom: 14px; }
+
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 16px; }
+.grid-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 16px; }
+.grid-1-1-1 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+/* ── Hero (Overall page) ─────────────────────────────── */
+.hero {
+  border-radius: 6px;
+  background: linear-gradient(135deg, #137333 0%, #0F5E29 100%);
+  color: white;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  display: flex; gap: 14px;
+}
+.hero svg { flex-shrink: 0; margin-top: 3px; opacity: 0.9; }
+.hero-eyebrow {
+  font-size: 11px; opacity: 0.8; text-transform: uppercase;
+  letter-spacing: 0.8px; font-weight: 500; margin-bottom: 8px;
+}
+.hero-text { font-size: 14px; line-height: 1.6; font-weight: 400; }
+.hero-text strong { font-weight: 600; }
+
+/* ── Alert cards (Overall) ───────────────────────────── */
+.alert-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+.alert-card.negative { border-left: 4px solid var(--negative); }
+.alert-card.warning { border-left: 4px solid var(--warning); }
+.alert-eyebrow {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
+}
+.alert-card.negative .alert-eyebrow { color: var(--negative); }
+.alert-card.warning .alert-eyebrow { color: var(--warning); }
+.alert-card h2 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.alert-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Funnel visualization ────────────────────────────── */
+.funnel-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+.funnel-label { width: 110px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); text-align: right; }
+.funnel-bar-wrap { flex: 1; }
+.funnel-bar {
+  height: 32px; border-radius: 3px;
+  display: flex; align-items: center; padding-left: 12px;
+  color: white; font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: width .8s ease;
+}
+.funnel-delta { width: 80px; text-align: right; }
+.funnel-cvr { width: 70px; font-size: 11px; color: var(--text-subtle); text-align: right; font-variant-numeric: tabular-nums; }
+.funnel-arrow { padding-left: 117px; height: 14px; font-size: 10.5px; color: var(--text-subtle); }
+
+/* ── NPS gauge ───────────────────────────────────────── */
+.nps-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 20px 22px; }
+.nps-card .kpi-label { margin-bottom: 12px; }
+.nps-row { display: flex; align-items: flex-end; gap: 24px; }
+.nps-value { font-size: 36px; font-weight: 600; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.nps-meta { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.nps-gauge-wrap { flex: 1; margin-left: 8px; }
+.nps-gauge-axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-bottom: 6px; }
+.nps-gauge-bar {
+  height: 10px; border-radius: 5px;
+  background: linear-gradient(90deg, #C5221F 0%, #F9AB00 50%, #137333 100%);
+  position: relative;
+}
+.nps-gauge-marker {
+  position: absolute; top: -4px;
+  width: 18px; height: 18px;
+  background: white; border-radius: 50%;
+  transform: translateX(-50%);
+}
+.nps-gauge-target { margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+
+/* ── Glossary ────────────────────────────────────────── */
+.search-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 24px;
+}
+.search-bar input { flex: 1; outline: none; border: none; background: transparent; font-size: 13px; color: var(--text); }
+.search-bar svg { color: var(--text-muted); }
+.search-bar .count { font-size: 11px; color: var(--text-subtle); margin-left: 8px; }
+
+.glossary-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.glossary-group-head {
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.glossary-group-head h4 {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.glossary-group-head .count { font-size: 11px; color: var(--text-subtle); }
+.glossary-row { padding: 12px 16px; display: flex; gap: 16px; border-bottom: 1px solid var(--border); }
+.glossary-row:last-child { border-bottom: none; }
+.glossary-term { width: 220px; flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.glossary-def { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+
+.taxonomy-source {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--brand-light); color: var(--brand);
+  border-radius: 3px; font-weight: 500; font-size: 11px;
+}
+
+/* ── Chatbot ────────────────────────────────────────── */
+.chatbot-fab {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 18px;
+  background: var(--brand); color: white;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(19,115,51,0.35);
+  font-size: 13px; font-weight: 500;
+  z-index: 100;
+  transition: transform .15s, box-shadow .15s;
+}
+.chatbot-fab:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(19,115,51,0.45); }
+.chatbot-fab svg { width: 16px; height: 16px; }
+
+.chatbot-panel {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 380px; height: 540px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+  display: none;
+  flex-direction: column;
+  z-index: 100;
+}
+.chatbot-panel.open { display: flex; }
+.chatbot-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--brand);
+  border-radius: 6px 6px 0 0;
+  color: white;
+}
+.chatbot-head .title { font-size: 13px; font-weight: 600; }
+.chatbot-head .sub { font-size: 10.5px; opacity: 0.85; }
+.chatbot-head-left { display: flex; align-items: center; gap: 8px; }
+.chatbot-close { padding: 4px; border-radius: 3px; color: white; }
+.chatbot-close:hover { background: rgba(255,255,255,0.1); }
+
+.chatbot-body { flex: 1; overflow-y: auto; padding: 16px; }
+.chat-msg { display: flex; gap: 10px; margin-bottom: 16px; }
+.chat-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--brand-light); color: var(--brand);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.chat-bubble {
+  background: var(--bg);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 12.5px; line-height: 1.5; color: var(--text);
+}
+.chat-bubble .demo-note { font-size: 10.5px; color: var(--text-subtle); font-style: italic; margin-top: 6px; }
+.chatbot-suggestions-label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;
+  margin: 4px 0 8px;
+}
+.chatbot-suggestion {
+  display: block; width: 100%;
+  text-align: left;
+  padding: 8px 12px; margin-bottom: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px; color: var(--text);
+  line-height: 1.4;
+  transition: border-color .15s;
+}
+.chatbot-suggestion:hover { border-color: var(--brand); background: var(--brand-light); }
+
+.chatbot-input-row {
+  display: flex; gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.chatbot-input-row input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+  outline: none;
+}
+.chatbot-input-row input:focus { border-color: var(--brand); }
+.chatbot-input-row button {
+  padding: 0 12px;
+  background: var(--brand); color: white;
+  border-radius: 4px;
+  display: grid; place-items: center;
+}
+.chatbot-input-row button:hover { background: var(--brand-hover); }
+
+/* ── Legend ──────────────────────────────────────────── */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+.legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ── Chart wrappers (constrain Chart.js heights) ─────── */
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap.tall { height: 260px; }
+.chart-wrap.short { height: 180px; }
+
+/* ── Channel mix bars (Awareness) ────────────────────── */
+.channel-row { margin-bottom: 12px; }
+.channel-row-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.channel-row-head .name { font-size: 12px; font-weight: 500; color: var(--text); }
+.channel-row-head .val { font-size: 12px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.channel-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.channel-bar-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+
+/* ── Responsive (basic) ──────────────────────────────── */
+@media (max-width: 1280px) {
+  .kpi-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid.cols-5 { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">AD</div>
+    <div>
+      <div class="brand-text-1">AD Education</div>
+      <div class="brand-text-2">Performance Cockpit</div>
+    </div>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div class="sidebar-footer">
+    <div class="label">Schools</div>
+    <div class="school-pills">
+      <span>Condé</span><span>ECV</span><span>ESP</span><span>ESD</span>
+    </div>
+  </div>
+</aside>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="breadcrumb">
+      <span>Performance Cockpit</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <span id="bc-pane">Overall</span>
+    </div>
+    <h1 id="topbar-title">Overall</h1>
+  </div>
+  <div class="topbar-right" id="topbar-right"></div>
+</header>
+
+<main id="main"></main>
+
+<button class="chatbot-fab" id="chatbot-fab" onclick="toggleChat(true)">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+  <span>Ask the cockpit</span>
+</button>
+
+<div class="chatbot-panel" id="chatbot-panel">
+  <div class="chatbot-head">
+    <div class="chatbot-head-left">
+      <div>
+        <div class="title">Conversational analytics</div>
+        <div class="sub">Ask anything about your dashboard</div>
+      </div>
+    </div>
+    <button class="chatbot-close" onclick="toggleChat(false)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  </div>
+  <div class="chatbot-body">
+    <div class="chat-msg">
+      <div class="chat-bubble">
+        Hi! I can help you explore the AD Education performance data. Try one of the suggestions below, or ask me anything about your KPIs, schools, campuses, or programs.
+        <div class="demo-note">Demo · responses are illustrative</div>
+      </div>
+    </div>
+    <div class="chatbot-suggestions-label">Suggested questions</div>
+    <button class="chatbot-suggestion" onclick="suggestPrompt(this)">Why is ESD enrollment behind target?</button>
+    <button class="chatbot-suggestion" onclick="suggestPrompt(this)">Which campus has the best CVR?</button>
+    <button class="chatbot-suggestion" onclick="suggestPrompt(this)">Compare Condé Paris vs Condé Bordeaux</button>
+    <button class="chatbot-suggestion" onclick="suggestPrompt(this)">Show me M2 program performance</button>
+  </div>
+  <div class="chatbot-input-row">
+    <input type="text" id="chat-input" placeholder="Ask a question…" />
+    <button onclick="document.getElementById('chat-input').value=''">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   ICONS (inline SVG strings)
+   ════════════════════════════════════════════════════════════ */
+const ICONS = {
+  dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  cap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+  megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18 9l-3.6 2.7L15.5 17 12 14.4 8.5 17l1.1-5.3L6 9l4.1-1.4z"/></svg>',
+  arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>',
+  arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></svg>',
+  minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
 };
 
-/* ── School & campus dimensions ─────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   DATA
+   ════════════════════════════════════════════════════════════ */
 const SCHOOLS = [
-  { name: 'Condé', tuition: 9000, color: '#137333', campuses: ['Bordeaux', 'Lille', 'Lyon', 'Marseille', 'Nancy', 'Nice', 'Paris', 'Rennes', 'Toulouse'] },
-  { name: 'ECV',   tuition: 8500, color: '#1A73E8', campuses: ['Paris', 'Aix', 'Bordeaux', 'Nantes', 'Lille'] },
-  { name: 'ESP',   tuition: 8000, color: '#E37400', campuses: ['Paris', 'Lyon', 'Bordeaux', 'Toulouse', 'Nantes', 'Lille'] },
-  { name: 'ESD',   tuition: 7500, color: '#9334E6', campuses: ['Paris', 'Lyon', 'Bordeaux', 'Toulouse', 'Nantes'] },
+  { name: 'Condé', tuition: 9000, color: '#137333', campuses: ['Bordeaux','Lille','Lyon','Marseille','Nancy','Nice','Paris','Rennes','Toulouse'] },
+  { name: 'ECV',   tuition: 8500, color: '#1A73E8', campuses: ['Paris','Aix','Bordeaux','Nantes','Lille'] },
+  { name: 'ESP',   tuition: 8000, color: '#E37400', campuses: ['Paris','Lyon','Bordeaux','Toulouse','Nantes','Lille'] },
+  { name: 'ESD',   tuition: 7500, color: '#9334E6', campuses: ['Paris','Lyon','Bordeaux','Toulouse','Nantes'] },
 ];
 
-const PROGRAMS = [
-  { year: 'B1', degree: 'Bachelor', length: 3 },
-  { year: 'B2', degree: 'Bachelor', length: 3 },
-  { year: 'B3', degree: 'Bachelor', length: 3 },
-  { year: 'M1', degree: 'Master',   length: 2 },
-  { year: 'M2', degree: 'Master',   length: 2 },
-];
-
-/* ── School-level dummy data (FYTD: Sept 2025–Apr 2026) ─────── */
-/* Funnel: Leads → LQ → Cand → Candidats → Admis → Inscrits */
 const SCHOOL_DATA = {
   'Condé': {
     leads: 2840, leadsPrev: 2620, leadsTarget: 3000,
@@ -66,11 +678,9 @@ const SCHOOL_DATA = {
     inscrits: 638, inscritsPrev: 615, inscritsTarget: 680,
     cvr: 22.5, cvrPrev: 23.5,
     lqInscrit: 32.1, lqInscritPrev: 34.0,
-    costLQ: 38, costLQPrev: 34,
-    costCand: 71, costCandPrev: 64,
+    costLQ: 38, costLQPrev: 34, costCand: 71, costCandPrev: 64,
     intl: 18.4, intlPrev: 16.9,
-    sessions: 51200, sessionsPrev: 46800,
-    sessionsTarget: 55000,
+    sessions: 51200, sessionsPrev: 46800, sessionsTarget: 55000,
     pctNew: 71.2, pctNewPrev: 68.4,
     reach: 64.3, reachPrev: 59.8,
     topMind: 62, topMindPrev: 58,
@@ -92,8 +702,7 @@ const SCHOOL_DATA = {
     inscrits: 510, inscritsPrev: 495, inscritsTarget: 550,
     cvr: 21.1, cvrPrev: 21.4,
     lqInscrit: 30.1, lqInscritPrev: 31.1,
-    costLQ: 42, costLQPrev: 39,
-    costCand: 78, costCandPrev: 71,
+    costLQ: 42, costLQPrev: 39, costCand: 78, costCandPrev: 71,
     intl: 22.6, intlPrev: 21.0,
     sessions: 48410, sessionsPrev: 44200, sessionsTarget: 52000,
     pctNew: 68.8, pctNewPrev: 66.2,
@@ -117,8 +726,7 @@ const SCHOOL_DATA = {
     inscrits: 358, inscritsPrev: 340, inscritsTarget: 420,
     cvr: 21.8, cvrPrev: 23.0,
     lqInscrit: 31.2, lqInscritPrev: 32.7,
-    costLQ: 36, costLQPrev: 35,
-    costCand: 67, costCandPrev: 65,
+    costLQ: 36, costLQPrev: 35, costCand: 67, costCandPrev: 65,
     intl: 14.2, intlPrev: 13.8,
     sessions: 28700, sessionsPrev: 26400, sessionsTarget: 32000,
     pctNew: 70.4, pctNewPrev: 67.9,
@@ -142,8 +750,7 @@ const SCHOOL_DATA = {
     inscrits: 253, inscritsPrev: 261, inscritsTarget: 340,
     cvr: 20.7, cvrPrev: 22.1,
     lqInscrit: 29.6, lqInscritPrev: 31.6,
-    costLQ: 44, costLQPrev: 38,
-    costCand: 82, costCandPrev: 71,
+    costLQ: 44, costLQPrev: 38, costCand: 82, costCandPrev: 71,
     intl: 11.2, intlPrev: 12.4,
     sessions: 21340, sessionsPrev: 20800, sessionsTarget: 26000,
     pctNew: 65.6, pctNewPrev: 65.1,
@@ -160,47 +767,38 @@ const SCHOOL_DATA = {
   },
 };
 
-/* Survey dates (last surveyed for stale-data display) */
 const SURVEY_DATES = {
-  topMind: 'Jun 2025',
-  brandCons: 'Jun 2025',
-  satisfaction: 'May 2025',
-  nps: 'Mar 2026',
-  review: 'Apr 2026',
+  topMind: 'Jun 2025', brandCons: 'Jun 2025',
+  satisfaction: 'May 2025', nps: 'Mar 2026', review: 'Apr 2026',
 };
 
-/* ── Campus-level dummy data (deterministic distribution) ───── */
-function buildCampusData() {
+/* Build campus data deterministically */
+const CAMPUS_DATA = (() => {
   const out = [];
   for (const school of SCHOOLS) {
     const sd = SCHOOL_DATA[school.name];
-    const n = school.campuses.length;
-    /* Weights so totals roughly match school totals; bigger campus first */
-    const weights = school.campuses.map((c, i) => {
+    const weights = school.campuses.map(c => {
       if (c === 'Paris') return 1.55;
       if (c === 'Lyon' || c === 'Bordeaux') return 1.20;
       if (c === 'Lille' || c === 'Toulouse') return 1.05;
       if (c === 'Nantes' || c === 'Marseille' || c === 'Aix') return 0.95;
       return 0.80;
     });
-    const wsum = weights.reduce((a, b) => a + b, 0);
+    const wsum = weights.reduce((a,b) => a+b, 0);
     school.campuses.forEach((c, i) => {
       const w = weights[i] / wsum;
-      /* tiny per-campus noise via index hashing */
-      const hash = ((c.charCodeAt(0) * 13 + i * 7) % 17) / 100; // 0-0.16
+      const hash = ((c.charCodeAt(0) * 13 + i * 7) % 17) / 100;
       const noise = 0.92 + hash;
       const inscrits = Math.round(sd.inscrits * w * noise);
       const target = Math.round(sd.inscritsTarget * w);
       const leads = Math.round(sd.leads * w * noise);
       const lq = Math.round(sd.lq * w * noise);
       const inscritsPrev = Math.round(sd.inscritsPrev * w * (0.94 + hash));
-      const cvr = leads > 0 ? +(inscrits / leads * 100).toFixed(1) : 0;
-      const pctTarget = target > 0 ? +(inscrits / target * 100).toFixed(1) : 0;
       out.push({
-        school: school.name,
-        campus: c,
-        leads, lq, inscrits, inscritsPrev,
-        target, pctTarget, cvr,
+        school: school.name, campus: c,
+        leads, lq, inscrits, inscritsPrev, target,
+        pctTarget: +(inscrits / target * 100).toFixed(1),
+        cvr: +(inscrits / leads * 100).toFixed(1),
         retention: +(sd.retention + (hash - 0.08) * 12).toFixed(1),
         satisfaction: +(sd.satisfaction + (hash - 0.08) * 0.6).toFixed(1),
         nps: Math.round(sd.nps + (hash - 0.08) * 25),
@@ -210,11 +808,8 @@ function buildCampusData() {
     });
   }
   return out;
-}
+})();
 
-const CAMPUS_DATA = buildCampusData();
-
-/* ── Program-level dummy data (aggregated across all schools) ── */
 const PROGRAM_DATA = [
   { year: 'B1', degree: 'Bachelor', leads: 2820, lq: 2030, inscrits: 615, target: 670, cvr: 21.8, pctTarget: 91.8, slv: 14.95, retention: 89.4, satisfaction: 4.1, nps: 41, attendance: 70.2 },
   { year: 'B2', degree: 'Bachelor', leads: 980,  lq: 720,  inscrits: 308, target: 320, cvr: 31.4, pctTarget: 96.3, slv:  7.48, retention: 92.1, satisfaction: 4.0, nps: 38, attendance: 66.1 },
@@ -223,7 +818,6 @@ const PROGRAM_DATA = [
   { year: 'M2', degree: 'Master',   leads: 220,  lq: 169,  inscrits: 88,  target: 110, cvr: 40.0, pctTarget: 80.0, slv:  1.43, retention: 88.2, satisfaction: 4.0, nps: 36, attendance: 61.2 },
 ];
 
-/* ── Awareness channel mix monthly trend ────────────────────── */
 const SESSIONS_TREND = [
   { month: 'Sep', organic: 7200, paid: 4800, social: 2100, referral: 1400, direct: 1800 },
   { month: 'Oct', organic: 8100, paid: 5200, social: 2400, referral: 1600, direct: 2000 },
@@ -235,7 +829,16 @@ const SESSIONS_TREND = [
   { month: 'Apr', organic: 8600, paid: 5400, social: 2800, referral: 1500, direct: 2100 },
 ];
 
-/* ── Glossary (all 114 GA4 entries) ─────────────────────────── */
+const TAXONOMY = [
+  { term: 'Lead', def: "Individu disposant d'une adresse email", id: 'contact_id', spec: 'n.a', source: 'Hubspot' },
+  { term: 'Lead qualifié', def: 'Lead âgé de plus de 18 ans', id: 'contact_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+  { term: 'Candidature en cours', def: 'Individu ayant ouvert un portail candidat non finalisé', id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+  { term: 'Candidat', def: 'Individu ayant soumis une candidature', id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+  { term: 'Entretien passé', def: "Candidat ayant passé un entretien d'admission", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+  { term: 'Admis', def: "Candidat ayant été informé de son admission à l'école", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+  { term: 'Inscrit', def: "Admis s'étant inscrit à l'école", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
+];
+
 const GLOSSARY = [
   {sub:'Core Concepts',term:'Account',def:'The top-level container in Google Analytics. An account holds one or more properties and is accessed via your Google login.'},
   {sub:'Core Concepts',term:'Property',def:'A GA4 property collects and stores data from one or more data streams (websites and/or apps) into a single set of reports.'},
@@ -292,7 +895,7 @@ const GLOSSARY = [
   {sub:'Acquisition',term:'User Acquisition Report',def:'A GA4 report showing how new users first arrived at your property.'},
   {sub:'Acquisition',term:'Traffic Acquisition Report',def:'A GA4 report showing how all sessions (new and returning) arrived at your property.'},
   {sub:'Acquisition',term:'Attribution Model',def:'The rule or algorithm that determines how credit for conversions is assigned to touchpoints in the user journey.'},
-  {sub:'Acquisition',term:'Data-Driven Attribution',def:'GA4\'s default model that uses machine learning to distribute credit based on actual conversion data.'},
+  {sub:'Acquisition',term:'Data-Driven Attribution',def:"GA4's default model that uses machine learning to distribute credit based on actual conversion data."},
   {sub:'Acquisition',term:'Last Click Attribution',def:'A model that gives 100% of conversion credit to the last touchpoint before conversion.'},
   {sub:'Acquisition',term:'First Click Attribution',def:'A model that gives 100% of conversion credit to the first touchpoint in the journey.'},
   {sub:'Acquisition',term:'Last Non-Direct Click Attribution',def:'A model that gives 100% of credit to the last touchpoint that was not direct traffic.'},
@@ -302,14 +905,14 @@ const GLOSSARY = [
   {sub:'Acquisition',term:'Position-Based Attribution',def:'A U-shaped model (also called 40-20-40) giving 40% to first and last touch, 20% to middle.'},
   {sub:'Audience & Demographics',term:'Audience',def:'A defined group of users who share specific attributes or behaviours, used for analysis or remarketing.'},
   {sub:'Audience & Demographics',term:'Segment',def:'A subset of data defined by conditions (e.g., users from France who completed a sign-up).'},
-  {sub:'Audience & Demographics',term:'Age',def:'A demographic dimension estimating the user\'s age bracket (18-24, 25-34, etc.).'},
-  {sub:'Audience & Demographics',term:'Gender',def:'A demographic dimension estimating the user\'s gender.'},
-  {sub:'Audience & Demographics',term:'Country / City / Region',def:'Geographic dimensions based on the user\'s IP address.'},
+  {sub:'Audience & Demographics',term:'Age',def:"A demographic dimension estimating the user's age bracket (18-24, 25-34, etc.)."},
+  {sub:'Audience & Demographics',term:'Gender',def:"A demographic dimension estimating the user's gender."},
+  {sub:'Audience & Demographics',term:'Country / City / Region',def:"Geographic dimensions based on the user's IP address."},
   {sub:'Audience & Demographics',term:'Language',def:'The browser or device language setting reported for the user.'},
   {sub:'Audience & Demographics',term:'Device Category',def:'The type of device used: Desktop, Mobile, or Tablet.'},
   {sub:'Audience & Demographics',term:'Browser',def:'The web browser used during the session (Chrome, Safari, Firefox, etc.).'},
   {sub:'Audience & Demographics',term:'Operating System',def:'The OS of the device used during the session (Windows, macOS, iOS, Android, etc.).'},
-  {sub:'Audience & Demographics',term:'Screen Resolution',def:'The display resolution of the user\'s device (e.g., 1920×1080).'},
+  {sub:'Audience & Demographics',term:'Screen Resolution',def:"The display resolution of the user's device (e.g., 1920×1080)."},
   {sub:'Content & Pages',term:'Landing Page',def:'The first page a user views in a session. Critical for understanding entry points.'},
   {sub:'Content & Pages',term:'Exit Page',def:'The last page a user views before their session ends.'},
   {sub:'Content & Pages',term:'Page Path',def:'The URL path of a page, excluding the domain (e.g., /programmes/bachelor).'},
@@ -336,7 +939,7 @@ const GLOSSARY = [
   {sub:'Advertising',term:'Click',def:'A single instance of a user clicking on an advertisement.'},
   {sub:'Advertising',term:'Impression (Ad)',def:'A single instance of an ad being displayed to a user.'},
   {sub:'Advertising',term:'Ad Campaign',def:'An organised set of ads with a shared budget, targeting, and goal.'},
-  {sub:'Privacy & Consent',term:'Consent Mode',def:'A Google framework that adjusts the behaviour of Google tags based on the user\'s consent choices.'},
+  {sub:'Privacy & Consent',term:'Consent Mode',def:"A Google framework that adjusts the behaviour of Google tags based on the user's consent choices."},
   {sub:'Privacy & Consent',term:'Modelled Data',def:'Estimated data GA4 generates using machine learning when user-level data is unavailable due to consent.'},
   {sub:'Privacy & Consent',term:'Data Retention',def:'The setting that controls how long GA4 stores user-level and event-level data (default 2 months, max 14 months).'},
   {sub:'Privacy & Consent',term:'IP Anonymisation',def:'In GA4, IP addresses are automatically anonymised before being stored.'},
@@ -348,27 +951,72 @@ const GLOSSARY = [
   {sub:'Technical',term:'BigQuery Export',def:'A feature that sends raw, unsampled GA4 event data to Google BigQuery for advanced analysis.'},
   {sub:'Technical',term:'Data Import',def:'A feature allowing you to upload external data (e.g., cost data from non-Google ads) into GA4.'},
   {sub:'Technical',term:'Measurement Protocol',def:'An API that lets you send events to GA4 from any internet-connected device.'},
-  {sub:'Technical',term:'Custom Dimension',def:'A user-defined dimension you create to capture data not covered by GA4\'s built-in dimensions.'},
-  {sub:'Technical',term:'Custom Metric',def:'A user-defined metric you create to capture numeric data not covered by GA4\'s built-in metrics.'},
+  {sub:'Technical',term:'Custom Dimension',def:"A user-defined dimension you create to capture data not covered by GA4's built-in dimensions."},
+  {sub:'Technical',term:'Custom Metric',def:"A user-defined metric you create to capture numeric data not covered by GA4's built-in metrics."},
   {sub:'Technical',term:'Sampling',def:'When GA4 analyses only a subset of data instead of the full dataset, typically when query complexity exceeds limits.'},
 ];
 
-const TAXONOMY = [
-  { term: 'Lead', def: "Individu disposant d'une adresse email", id: 'contact_id', spec: 'n.a', source: 'Hubspot' },
-  { term: 'Lead qualifié', def: 'Lead âgé de plus de 18 ans', id: 'contact_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-  { term: 'Candidature en cours', def: 'Individu ayant ouvert un portail candidat non finalisé', id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-  { term: 'Candidat', def: 'Individu ayant soumis une candidature', id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-  { term: 'Entretien passé', def: "Candidat ayant passé un entretien d'admission", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-  { term: 'Admis', def: "Candidat ayant été informé de son admission à l'école", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-  { term: 'Inscrit', def: "Admis s'étant inscrit à l'école", id: 'deal_id', spec: 'Hors parents et leads internationaux', source: 'Hubspot' },
-];
+/* ════════════════════════════════════════════════════════════
+   AGGREGATES (group totals)
+   ════════════════════════════════════════════════════════════ */
+const G = (() => {
+  const sum = (k) => SCHOOLS.reduce((s, x) => s + (SCHOOL_DATA[x.name][k] || 0), 0);
+  const wavg = (k, weightKey) => {
+    const num = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name][k] * SCHOOL_DATA[x.name][weightKey], 0);
+    const den = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name][weightKey], 0);
+    return num / den;
+  };
+  const o = {};
+  ['leads','leadsPrev','leadsTarget','lq','lqPrev','lqTarget','cand','candPrev','candTarget',
+    'candidats','candidatsPrev','candidatsTarget','admis','admisPrev','admisTarget',
+    'inscrits','inscritsPrev','inscritsTarget','sessions','sessionsPrev','sessionsTarget','activeStudents'].forEach(k => o[k] = sum(k));
+  o.cvr = +(o.inscrits / o.leads * 100).toFixed(1);
+  o.cvrPrev = +(o.inscritsPrev / o.leadsPrev * 100).toFixed(1);
+  o.lqInscrit = +(o.inscrits / o.lq * 100).toFixed(1);
+  o.lqInscritPrev = +(o.inscritsPrev / o.lqPrev * 100).toFixed(1);
+  o.pctNew = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].pctNew, 0) / SCHOOLS.length).toFixed(1);
+  o.pctNewPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].pctNewPrev, 0) / SCHOOLS.length).toFixed(1);
+  o.reach = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reach, 0) / SCHOOLS.length).toFixed(1);
+  o.reachPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reachPrev, 0) / SCHOOLS.length).toFixed(1);
+  o.topMind = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].topMind, 0) / SCHOOLS.length).toFixed(0);
+  o.topMindPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].topMindPrev, 0) / SCHOOLS.length).toFixed(0);
+  o.attendance = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].attendance, 0) / SCHOOLS.length).toFixed(1);
+  o.attendancePrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].attendancePrev, 0) / SCHOOLS.length).toFixed(1);
+  o.brandCons = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].brandCons, 0) / SCHOOLS.length).toFixed(0);
+  o.brandConsPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].brandConsPrev, 0) / SCHOOLS.length).toFixed(0);
+  o.engagedSess = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].engagedSess, 0) / SCHOOLS.length).toFixed(1);
+  o.engagedSessPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].engagedSessPrev, 0) / SCHOOLS.length).toFixed(1);
+  o.retention = +wavg('retention','activeStudents').toFixed(1);
+  o.retentionPrev = +wavg('retentionPrev','activeStudents').toFixed(1);
+  o.satisfaction = +wavg('satisfaction','activeStudents').toFixed(2);
+  o.satisfactionPrev = +wavg('satisfactionPrev','activeStudents').toFixed(2);
+  o.nps = Math.round(wavg('nps','activeStudents'));
+  o.npsPrev = Math.round(wavg('npsPrev','activeStudents'));
+  o.review = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].review, 0) / SCHOOLS.length).toFixed(1);
+  o.reviewPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reviewPrev, 0) / SCHOOLS.length).toFixed(1);
+  o.intl = +wavg('intl','inscrits').toFixed(1);
+  o.intlPrev = +wavg('intlPrev','inscritsPrev').toFixed(1);
+  o.costLQ = Math.round(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costLQ * SCHOOL_DATA[x.name].lq, 0) / o.lq);
+  o.costLQPrev = Math.round(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costLQPrev * SCHOOL_DATA[x.name].lqPrev, 0) / o.lqPrev);
+  o.costCand = Math.round(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costCand * SCHOOL_DATA[x.name].cand, 0) / o.cand);
+  o.costCandPrev = Math.round(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costCandPrev * SCHOOL_DATA[x.name].candPrev, 0) / o.candPrev);
+  o.totalSLV = SCHOOLS.reduce((s, x) => {
+    const d = SCHOOL_DATA[x.name];
+    const avgYears = 3 * 0.6 + 2 * 0.4;
+    return s + d.activeStudents * x.tuition * avgYears;
+  }, 0);
+  o.totalSLVprev = o.totalSLV * 0.96;
+  return o;
+})();
+
+const WORST_CAMPUS = [...CAMPUS_DATA].sort((a,b) => a.pctTarget - b.pctTarget)[0];
+const WORST_PROGRAMS = [...PROGRAM_DATA].sort((a,b) => a.pctTarget - b.pctTarget).slice(0, 3);
 
 /* ════════════════════════════════════════════════════════════
-   FORMATTERS & HELPERS
+   FORMATTERS
    ════════════════════════════════════════════════════════════ */
 const fmt = {
   num: (n) => n == null ? '—' : new Intl.NumberFormat('fr-FR').format(Math.round(n)),
-  num1: (n) => n == null ? '—' : new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n),
   pct: (n) => n == null ? '—' : `${n.toFixed(1)}%`,
   pct0: (n) => n == null ? '—' : `${Math.round(n)}%`,
   eur: (n) => n == null ? '—' : `€${new Intl.NumberFormat('fr-FR').format(Math.round(n))}`,
@@ -376,1378 +1024,893 @@ const fmt = {
   rating: (n) => n == null ? '—' : `${n.toFixed(1)}/5`,
 };
 
-function pctChange(curr, prev) {
-  if (!prev) return 0;
-  return ((curr - prev) / prev) * 100;
-}
-
 function deltaInfo(curr, prev, opts = {}) {
-  const { invert = false, absolute = false, suffix = '' } = opts;
   if (prev == null || prev === 0) return null;
   const diff = curr - prev;
   const pct = (diff / Math.abs(prev)) * 100;
-  const isPositive = invert ? diff < 0 : diff > 0;
-  const isNegative = invert ? diff > 0 : diff < 0;
+  const isFlat = Math.abs(pct) < 0.5;
+  const baselinePositive = diff > 0;
+  const isPositive = opts.invert ? !baselinePositive : baselinePositive;
+  const cls = isFlat ? 'flat' : isPositive ? 'up' : 'down';
+  const ico = isFlat ? ICONS.minus : (diff > 0 ? ICONS.arrowUp : ICONS.arrowDown);
   const sign = diff > 0 ? '+' : '';
-  return {
-    abs: `${sign}${absolute ? fmt.num(diff) : pct.toFixed(1) + '%'}${suffix}`,
-    diff,
-    pct,
-    isPositive,
-    isNegative,
-    isFlat: Math.abs(pct) < 0.5,
-  };
+  const txt = opts.absolute ? `${sign}${fmt.num(diff)}${opts.suffix || ''}` : `${sign}${pct.toFixed(1)}%`;
+  return { cls, ico, txt, isPositive, isFlat };
 }
 
-const G = SCHOOLS.reduce((acc, s) => {
-  const d = SCHOOL_DATA[s.name];
-  Object.keys(d).forEach(k => {
-    acc[k] = (acc[k] || 0) + (typeof d[k] === 'number' ? d[k] : 0);
+function renderDelta(d) {
+  if (!d) return '<span style="font-size:11px;color:var(--text-subtle)">—</span>';
+  return `<span class="delta ${d.cls}">${d.ico}<span>${d.txt}</span></span>`;
+}
+
+function pctBarColor(pct) {
+  if (pct >= 95) return 'var(--positive)';
+  if (pct >= 85) return 'var(--brand)';
+  if (pct >= 75) return 'var(--warning)';
+  return 'var(--negative)';
+}
+
+/* ════════════════════════════════════════════════════════════
+   COMPONENT BUILDERS (return HTML strings)
+   ════════════════════════════════════════════════════════════ */
+function voiceover(text, tone = 'neutral') {
+  const cls = tone === 'positive' || tone === 'warning' || tone === 'negative' ? tone : '';
+  return `<div class="voiceover ${cls}"><span>${text}</span></div>`;
+}
+
+function sectionTitle(title, badge) {
+  return `<div class="section-title"><h3>${title}</h3>${badge ? `<span class="badge">${badge}</span>` : ''}</div>`;
+}
+
+function kpiCard({ label, value, unit, prev, pctTarget, target, sub, surveyDate, invertDelta, large }) {
+  const numVal = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^\d.-]/g, ''));
+  const d = prev != null ? deltaInfo(numVal, prev, { invert: invertDelta }) : null;
+  let html = `<div class="kpi-card ${large ? 'large' : ''}">`;
+  html += `<div class="kpi-label">${label}</div>`;
+  html += `<div><span class="kpi-value">${value}</span>${unit ? `<span class="kpi-unit">${unit}</span>` : ''}</div>`;
+  if (d || surveyDate) {
+    html += `<div class="kpi-meta">`;
+    if (d) html += renderDelta(d);
+    if (surveyDate) html += `<span class="survey-date">Surveyed ${surveyDate}</span>`;
+    html += `</div>`;
+  }
+  if (pctTarget != null) {
+    const c = pctBarColor(pctTarget);
+    html += `<div class="kpi-target">
+      <div class="kpi-target-row"><span class="lbl">Target</span><span class="val">${pctTarget.toFixed(0)}%</span></div>
+      <div class="progress"><div class="progress-fill" style="width:${Math.min(100, Math.max(0, pctTarget))}%;background:${c}"></div></div>
+      ${target != null ? `<div class="kpi-target-sub">${typeof target === 'number' ? fmt.num(target) + ' target' : target}</div>` : ''}
+    </div>`;
+  }
+  if (sub && pctTarget == null) html += `<div class="kpi-sub">${sub}</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function miniBar(pct) {
+  const c = pctBarColor(pct);
+  return `<span class="mini-bar"><span class="mini-bar-fill" style="width:${Math.min(100, Math.max(0, pct))}%;background:${c}"></span></span>`;
+}
+
+function pctTargetCell(pct) {
+  return `<span class="cell-pct-target"><span class="pct-val" style="color:${pctBarColor(pct)}">${pct.toFixed(1)}%</span>${miniBar(pct)}</span>`;
+}
+
+function numWithDelta(val, prev, opts = {}) {
+  const fmtFn = opts.fmt || fmt.num;
+  const d = prev != null ? deltaInfo(val, prev, { invert: opts.invert }) : null;
+  return `<span class="cell-num-delta"><span style="font-weight:500">${fmtFn(val)}</span>${d ? renderDelta(d) : ''}</span>`;
+}
+
+function schoolCell(name) {
+  const color = SCHOOLS.find(s => s.name === name)?.color || 'var(--brand)';
+  return `<div class="cell-school"><span class="bar" style="background:${color}"></span><span class="name">${name}</span></div>`;
+}
+
+function campusCell(row) {
+  return `<div class="cell-campus"><div class="name">${row.campus}</div><div class="school">${row.school}</div></div>`;
+}
+
+function programCell(row) {
+  const cls = row.degree === 'Master' ? 'master' : '';
+  return `<div class="cell-program"><span class="pill ${cls}">${row.year}</span><span class="deg">${row.degree}</span></div>`;
+}
+
+function table(cols, rows) {
+  let html = '<div class="table-wrap"><div class="table-scroll"><table class="data-table"><thead><tr>';
+  cols.forEach(c => {
+    html += `<th class="${c.align === 'right' ? 'num' : ''}">${c.h}</th>`;
   });
-  return acc;
-}, {});
-/* Recompute aggregated rates not just sums */
-G.cvr = +(G.inscrits / G.leads * 100).toFixed(1);
-G.cvrPrev = +(G.inscritsPrev / G.leadsPrev * 100).toFixed(1);
-G.lqInscrit = +(G.inscrits / G.lq * 100).toFixed(1);
-G.pctNew = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].pctNew, 0) / SCHOOLS.length).toFixed(1);
-G.retention = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].retention * SCHOOL_DATA[x.name].activeStudents, 0) / G.activeStudents).toFixed(1);
-G.retentionPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].retentionPrev * SCHOOL_DATA[x.name].activeStudents, 0) / G.activeStudents).toFixed(1);
-G.satisfaction = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].satisfaction * SCHOOL_DATA[x.name].activeStudents, 0) / G.activeStudents).toFixed(2);
-G.satisfactionPrev = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].satisfactionPrev * SCHOOL_DATA[x.name].activeStudents, 0) / G.activeStudents).toFixed(2);
-G.nps = Math.round(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].nps * SCHOOL_DATA[x.name].activeStudents, 0) / G.activeStudents);
-G.review = +(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].review, 0) / SCHOOLS.length).toFixed(1);
-G.totalSLV = SCHOOLS.reduce((sum, s) => {
-  const d = SCHOOL_DATA[s.name];
-  /* avg SLV per active student: bachelor ~3y * tuition, master ~2y * tuition, mix 60/40 */
-  const avg = s.tuition * (3 * 0.6 + 2 * 0.4);
-  return sum + d.activeStudents * avg;
-}, 0);
-G.totalSLVprev = G.totalSLV * 0.96;
-
-const WORST_CAMPUS = [...CAMPUS_DATA].sort((a, b) => a.pctTarget - b.pctTarget)[0];
-const WORST_PROGRAMS = [...PROGRAM_DATA].sort((a, b) => a.pctTarget - b.pctTarget).slice(0, 3);
-
-/* ════════════════════════════════════════════════════════════
-   SHARED COMPONENTS
-   ════════════════════════════════════════════════════════════ */
-
-function VoiceOver({ text, tone = 'neutral' }) {
-  const accent = tone === 'positive' ? T.positive : tone === 'negative' ? T.negative : tone === 'warning' ? T.warning : T.brand;
-  return (
-    <div className="flex items-start gap-3 mb-4 px-4 py-3 rounded"
-         style={{ background: T.voice, borderLeft: `3px solid ${accent}`, color: T.textMuted, fontSize: 12.5, lineHeight: 1.55 }}>
-      <Sparkles size={14} style={{ color: accent, marginTop: 2, flexShrink: 0 }} />
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function SectionTitle({ children, badge }) {
-  return (
-    <div className="flex items-center gap-3 mb-3 mt-2">
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, letterSpacing: '-0.1px' }}>{children}</h3>
-      {badge && <span className="px-2 py-0.5 rounded" style={{ fontSize: 10, color: T.textMuted, background: T.bg, border: `1px solid ${T.border}`, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>{badge}</span>}
-    </div>
-  );
-}
-
-function Delta({ delta, size = 'sm' }) {
-  if (!delta) return <span style={{ fontSize: 11, color: T.textSubtle }}>—</span>;
-  const color = delta.isFlat ? T.textMuted : delta.isPositive ? T.positive : T.negative;
-  const bg = delta.isFlat ? T.bg : delta.isPositive ? T.positiveSoft : T.negativeSoft;
-  const Icon = delta.isFlat ? Minus : delta.isPositive ? ArrowUpRight : ArrowDownRight;
-  const fontSize = size === 'lg' ? 12 : 11;
-  return (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-medium" style={{ color, background: bg, fontSize }}>
-      <Icon size={size === 'lg' ? 12 : 10} strokeWidth={2.5} />
-      {delta.abs}
-    </span>
-  );
-}
-
-function ProgressBar({ pct, accent }) {
-  const v = Math.max(0, Math.min(100, pct));
-  const barColor = accent || (v >= 95 ? T.positive : v >= 85 ? T.brand : v >= 75 ? T.warning : T.negative);
-  return (
-    <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: T.border }}>
-      <div className="h-full rounded-full" style={{ width: `${v}%`, background: barColor, transition: 'width .6s ease' }} />
-    </div>
-  );
-}
-
-function KpiCard({ label, value, unit, delta, pctTarget, target, sub, prev, surveyDate, invertDelta, accent, large }) {
-  const computedDelta = delta !== undefined ? delta : (prev != null ? deltaInfo(typeof value === 'number' ? value : parseFloat(value), prev, { invert: invertDelta }) : null);
-  return (
-    <div className="rounded-md hover:shadow-sm transition-shadow"
-         style={{ background: T.surface, border: `1px solid ${T.border}`, padding: large ? '20px 22px' : '16px 18px' }}>
-      <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 500, marginBottom: 8 }}>
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span style={{ fontSize: large ? 30 : 24, fontWeight: 600, color: T.text, letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums' }}>
-          {value}
-        </span>
-        {unit && <span style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>{unit}</span>}
-      </div>
-      {(computedDelta || surveyDate) && (
-        <div className="mt-2 flex items-center gap-2 flex-wrap">
-          {computedDelta && <Delta delta={computedDelta} />}
-          {surveyDate && <span style={{ fontSize: 10.5, color: T.textSubtle }}>Surveyed {surveyDate}</span>}
-        </div>
-      )}
-      {pctTarget != null && (
-        <div className="mt-3">
-          <div className="flex justify-between mb-1.5">
-            <span style={{ fontSize: 10.5, color: T.textMuted, letterSpacing: '0.3px' }}>Target</span>
-            <span style={{ fontSize: 11, color: T.text, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{pctTarget.toFixed(0)}%</span>
-          </div>
-          <ProgressBar pct={pctTarget} accent={accent} />
-          {target != null && <div style={{ fontSize: 10.5, color: T.textSubtle, marginTop: 4 }}>{fmt.num(target)} target</div>}
-        </div>
-      )}
-      {sub && <div className="mt-2" style={{ fontSize: 11, color: T.textSubtle }}>{sub}</div>}
-    </div>
-  );
-}
-
-function MiniBar({ pct, accent }) {
-  return (
-    <div style={{ width: 80, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-      <div style={{ width: `${Math.min(100, Math.max(0, pct))}%`, height: '100%', background: accent || T.brand, borderRadius: 3 }} />
-    </div>
-  );
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    cols.forEach(c => {
+      html += `<td class="${c.align === 'right' ? 'num' : ''}">${c.r(r)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+  return html;
 }
 
 /* ════════════════════════════════════════════════════════════
-   SIDEBAR
+   FUNNEL VIEW (HTML)
    ════════════════════════════════════════════════════════════ */
-const NAV = [
-  { id: 'overall',       label: 'Overall',       icon: LayoutDashboard, hint: 'CEO view' },
-  { id: 'awareness',     label: 'Awareness',     icon: Eye },
-  { id: 'consideration', label: 'Consideration', icon: Heart },
-  { id: 'conversion',    label: 'Conversion',    icon: Target },
-  { id: 'loyalty',       label: 'Loyalty',       icon: GraduationCap },
-  { id: 'advocacy',      label: 'Advocacy',      icon: Megaphone },
-  { id: 'glossary',      label: 'Glossary',      icon: BookOpen },
-];
-
-function Sidebar({ active, onNav }) {
-  return (
-    <aside className="fixed top-0 left-0 bottom-0 flex flex-col" style={{ width: 240, background: T.navBg, color: '#E8EAED', zIndex: 50 }}>
-      <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid #2D2F31' }}>
-        <div className="flex items-center gap-2.5">
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: T.brand, display: 'grid', placeItems: 'center', color: 'white', fontWeight: 700, fontSize: 13 }}>AD</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'white', letterSpacing: '-0.2px' }}>AD Education</div>
-            <div style={{ fontSize: 10.5, color: '#9AA0A6', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 1 }}>Performance Cockpit</div>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {NAV.map(item => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
-          return (
-            <button key={item.id} onClick={() => onNav(item.id)}
-              className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors text-left"
-              style={{
-                color: isActive ? 'white' : '#BDC1C6',
-                background: isActive ? 'rgba(19,115,51,0.12)' : 'transparent',
-                borderLeft: `3px solid ${isActive ? T.brand : 'transparent'}`,
-                fontSize: 13,
-                fontWeight: isActive ? 500 : 400,
-              }}>
-              <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} style={{ opacity: isActive ? 1 : 0.75 }} />
-              <span className="flex-1">{item.label}</span>
-              {item.hint && (
-                <span style={{ fontSize: 9.5, color: '#80868B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.hint}</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="px-5 py-4" style={{ borderTop: '1px solid #2D2F31' }}>
-        <div style={{ fontSize: 10.5, color: '#80868B', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>Schools</div>
-        <div className="flex flex-wrap gap-1.5">
-          {SCHOOLS.map(s => (
-            <span key={s.name} className="px-2 py-0.5 rounded" style={{ fontSize: 10.5, background: '#2D2F31', color: '#E8EAED', fontWeight: 500 }}>{s.name}</span>
-          ))}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════
-   TOPBAR
-   ════════════════════════════════════════════════════════════ */
-function TopBar({ paneTitle }) {
-  const [schoolFilter, setSchoolFilter] = useState('All schools');
-  const [campusFilter, setCampusFilter] = useState('All campuses');
-  const [yearFilter, setYearFilter] = useState('All years');
-
-  return (
-    <header className="fixed top-0 right-0 flex items-center justify-between px-7"
-            style={{ left: 240, height: 56, background: T.surface, borderBottom: `1px solid ${T.border}`, zIndex: 40 }}>
-      <div className="flex items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2" style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 2 }}>
-            <span>Performance Cockpit</span>
-            <ChevronRight size={12} />
-            <span>{paneTitle}</span>
-          </div>
-          <h1 style={{ fontSize: 16, fontWeight: 600, color: T.text, letterSpacing: '-0.2px' }}>{paneTitle}</h1>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <FilterPill label="School" value={schoolFilter} options={['All schools', ...SCHOOLS.map(s => s.name)]} onChange={setSchoolFilter} />
-        <FilterPill label="Campus" value={campusFilter} options={['All campuses', 'Paris', 'Lyon', 'Bordeaux', 'Lille', 'Toulouse', 'Nantes']} onChange={setCampusFilter} />
-        <FilterPill label="Year" value={yearFilter} options={['All years', 'B1', 'B2', 'B3', 'M1', 'M2']} onChange={setYearFilter} />
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded" style={{ border: `1px solid ${T.border}`, background: T.surface, fontSize: 12 }}>
-          <Calendar size={12} style={{ color: T.textMuted }} />
-          <span style={{ color: T.textMuted, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Period</span>
-          <span style={{ color: T.text, fontWeight: 500 }}>FYTD 2025–26</span>
-          <span style={{ color: T.textSubtle, marginLeft: 4 }}>vs. FYTD 2024–25</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded" style={{ background: T.brandLight, color: T.brand, fontSize: 11, fontWeight: 500 }}>
-          <RefreshCw size={11} />
-          27 Apr 2026
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function FilterPill({ label, value, options, onChange }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors hover:border-gray-400"
-        style={{ border: `1px solid ${T.border}`, background: T.surface, fontSize: 12, color: T.text }}>
-        <span style={{ color: T.textMuted, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</span>
-        <span style={{ fontWeight: 500 }}>{value}</span>
-        <ChevronDown size={11} style={{ color: T.textMuted }} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full mt-1 right-0 rounded shadow-lg z-20 py-1"
-               style={{ background: T.surface, border: `1px solid ${T.border}`, minWidth: 180 }}>
-            {options.map(opt => (
-              <button key={opt} onClick={() => { onChange(opt); setOpen(false); }}
-                className="w-full text-left px-3 py-1.5 hover:bg-gray-50"
-                style={{ fontSize: 12, color: opt === value ? T.brand : T.text, fontWeight: opt === value ? 500 : 400 }}>
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════
-   PANE 1 — OVERALL (CEO view)
-   ════════════════════════════════════════════════════════════ */
-
-function OverallPane() {
-  const cvrPctTarget = 95.4; /* dummy: vs internal 23.5% target */
-  const cards = [
-    { label: 'Leads', value: fmt.num(G.leads), prev: G.leadsPrev, target: G.leadsTarget, pct: (G.leads / G.leadsTarget) * 100 },
-    { label: 'LQ', value: fmt.num(G.lq), prev: G.lqPrev, target: G.lqTarget, pct: (G.lq / G.lqTarget) * 100 },
-    { label: 'Candidatures', value: fmt.num(G.cand), prev: G.candPrev, target: G.candTarget, pct: (G.cand / G.candTarget) * 100 },
-    { label: 'Candidats', value: fmt.num(G.candidats), prev: G.candidatsPrev, target: G.candidatsTarget, pct: (G.candidats / G.candidatsTarget) * 100 },
-    { label: 'Admis', value: fmt.num(G.admis), prev: G.admisPrev, target: G.admisTarget, pct: (G.admis / G.admisTarget) * 100 },
-    { label: 'Inscrits', value: fmt.num(G.inscrits), prev: G.inscritsPrev, target: G.inscritsTarget, pct: (G.inscrits / G.inscritsTarget) * 100 },
-  ];
-
-  const lifecycleCards = [
-    { label: 'Lead → Inscrit CVR', value: G.cvr.toFixed(1) + '%', prev: G.cvrPrev, pct: cvrPctTarget, target: '23.5% target' },
-    { label: 'Total Student Lifetime Value', value: fmt.eurM(G.totalSLV / 1_000_000), prev: G.totalSLVprev / 1_000_000, pct: 92.4, target: '€105M target' },
-    { label: 'Retention rate', value: G.retention.toFixed(1) + '%', prev: G.retentionPrev, pct: (G.retention / 90) * 100, target: '90% target' },
-    { label: 'Satisfaction rate', value: G.satisfaction.toFixed(1), unit: '/5', prev: G.satisfactionPrev, pct: (G.satisfaction / 4.3) * 100, target: '4.3 target', surveyDate: SURVEY_DATES.satisfaction },
-  ];
-
-  return (
-    <div>
-      {/* Hero voice-over */}
-      <div className="rounded-md p-5 mb-5" style={{ background: 'linear-gradient(135deg, #137333 0%, #0F5E29 100%)', color: 'white' }}>
-        <div className="flex items-start gap-3">
-          <Sparkles size={18} style={{ marginTop: 3, opacity: 0.9, flexShrink: 0 }} />
-          <div>
-            <div style={{ fontSize: 11, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 500, marginBottom: 6 }}>Executive Snapshot · FYTD 2025–26</div>
-            <div style={{ fontSize: 14, lineHeight: 1.6, fontWeight: 400 }}>
-              The group is at <strong>{((G.inscrits / G.inscritsTarget) * 100).toFixed(1)}%</strong> of its enrollment target ({fmt.num(G.inscrits)} of {fmt.num(G.inscritsTarget)} inscrits) with end-to-end CVR up to <strong>{G.cvr.toFixed(1)}%</strong>. Retention holds steady at {G.retention.toFixed(1)}% but ESD continues to underperform — Toulouse campus is below 75% of target and the M2 program lags group-wide. Total committed student lifetime value reaches <strong>{fmt.eurM(G.totalSLV / 1_000_000)}</strong>.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Section A: Funnel KPIs */}
-      <SectionTitle badge="Enrollment funnel">Funnel volumes</SectionTitle>
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        {cards.map((c, i) => (
-          <KpiCard key={i} label={c.label} value={c.value} prev={c.prev} pctTarget={c.pct} target={c.target} />
-        ))}
-      </div>
-
-      {/* Section A continued: Lifecycle KPIs */}
-      <SectionTitle badge="Lifecycle health">Conversion, value & loyalty</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        {lifecycleCards.map((c, i) => (
-          <KpiCard key={i} large label={c.label} value={c.value} unit={c.unit}
-                   prev={c.prev} pctTarget={c.pct} sub={c.target} surveyDate={c.surveyDate} />
-        ))}
-      </div>
-
-      {/* Section B: Alerts */}
-      <SectionTitle badge="Action required">Alerts</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}`, borderLeft: `4px solid ${T.negative}` }}>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={14} style={{ color: T.negative }} />
-            <span style={{ fontSize: 10.5, color: T.negative, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600 }}>Worst-performing campus</span>
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 600, color: T.text, letterSpacing: '-0.3px' }}>{WORST_CAMPUS.school} {WORST_CAMPUS.campus}</div>
-          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>by % of enrollment target achieved</div>
-          <div className="mt-4 flex items-baseline gap-3">
-            <div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 2 }}>% of target</div>
-              <div style={{ fontSize: 26, fontWeight: 600, color: T.negative, fontVariantNumeric: 'tabular-nums' }}>{WORST_CAMPUS.pctTarget.toFixed(1)}%</div>
-            </div>
-            <div className="ml-4">
-              <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 2 }}>Inscrits / Target</div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{fmt.num(WORST_CAMPUS.inscrits)} / {fmt.num(WORST_CAMPUS.target)}</div>
-              <div style={{ fontSize: 11, color: T.negative, fontWeight: 500, marginTop: 2 }}>Gap: {fmt.num(WORST_CAMPUS.target - WORST_CAMPUS.inscrits)} inscrits</div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <ProgressBar pct={WORST_CAMPUS.pctTarget} accent={T.negative} />
-          </div>
-        </div>
-
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}`, borderLeft: `4px solid ${T.warning}` }}>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={14} style={{ color: T.warning }} />
-            <span style={{ fontSize: 10.5, color: T.warning, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600 }}>Worst-performing programs</span>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-                <th style={{ textAlign: 'left', padding: '6px 8px 6px 0', fontSize: 10.5, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>Year</th>
-                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 10.5, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>Degree</th>
-                <th style={{ textAlign: 'right', padding: '6px 8px', fontSize: 10.5, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>Inscrits</th>
-                <th style={{ textAlign: 'right', padding: '6px 8px', fontSize: 10.5, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>Target</th>
-                <th style={{ textAlign: 'right', padding: '6px 0 6px 8px', fontSize: 10.5, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500 }}>% Target</th>
-              </tr>
-            </thead>
-            <tbody>
-              {WORST_PROGRAMS.map((p, i) => (
-                <tr key={i} style={{ borderBottom: i < 2 ? `1px solid ${T.border}` : 'none' }}>
-                  <td style={{ padding: '10px 8px 10px 0', fontSize: 13, fontWeight: 600, color: T.text }}>{p.year}</td>
-                  <td style={{ padding: '10px 8px', fontSize: 13, color: T.textMuted }}>{p.degree}</td>
-                  <td style={{ padding: '10px 8px', fontSize: 13, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{fmt.num(p.inscrits)}</td>
-                  <td style={{ padding: '10px 8px', fontSize: 13, fontVariantNumeric: 'tabular-nums', textAlign: 'right', color: T.textMuted }}>{fmt.num(p.target)}</td>
-                  <td style={{ padding: '10px 0 10px 8px', textAlign: 'right' }}>
-                    <span className="inline-flex items-center gap-2 justify-end">
-                      <span style={{ fontSize: 13, fontWeight: 600, color: p.pctTarget < 85 ? T.warning : T.text, fontVariantNumeric: 'tabular-nums' }}>{p.pctTarget.toFixed(1)}%</span>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Funnel viz */}
-      <SectionTitle badge="Group · YTD">Funnel at a glance</SectionTitle>
-      <div className="rounded-md p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-        <FunnelView />
-      </div>
-
-      {/* Closing voice-over */}
-      <VoiceOver tone="positive" text={
-        <span>
-          Funnel volumes are growing across all stages year-on-year. The acceleration in mid-funnel (LQ → Candidature) reflects faster lead qualification.
-          Watch points: <strong>ESD Toulouse</strong> at {WORST_CAMPUS.pctTarget.toFixed(0)}% of target, and the <strong>M1 program</strong> overall (largest absolute gap to plan). Consider shifting paid budget from Condé (already at 94%) toward ESD's underperforming campuses for the May–July push.
-        </span>
-      } />
-    </div>
-  );
-}
-
-function FunnelView() {
+function funnelView() {
   const stages = [
-    { name: 'Leads', val: G.leads, prev: G.leadsPrev, w: 100 },
-    { name: 'LQ', val: G.lq, prev: G.lqPrev, w: (G.lq / G.leads) * 100 },
-    { name: 'Candidatures', val: G.cand, prev: G.candPrev, w: (G.cand / G.leads) * 100 },
-    { name: 'Candidats', val: G.candidats, prev: G.candidatsPrev, w: (G.candidats / G.leads) * 100 },
-    { name: 'Admis', val: G.admis, prev: G.admisPrev, w: (G.admis / G.leads) * 100 },
-    { name: 'Inscrits', val: G.inscrits, prev: G.inscritsPrev, w: (G.inscrits / G.leads) * 100 },
+    { name: 'Leads',        val: G.leads,      prev: G.leadsPrev },
+    { name: 'LQ',           val: G.lq,         prev: G.lqPrev },
+    { name: 'Candidatures', val: G.cand,       prev: G.candPrev },
+    { name: 'Candidats',    val: G.candidats,  prev: G.candidatsPrev },
+    { name: 'Admis',        val: G.admis,      prev: G.admisPrev },
+    { name: 'Inscrits',     val: G.inscrits,   prev: G.inscritsPrev },
   ];
-  const maxVal = G.leads;
-  return (
-    <div>
-      {stages.map((s, i) => {
-        const next = stages[i + 1];
-        const stepCvr = i === 0 ? null : (s.val / stages[i - 1].val) * 100;
-        const d = deltaInfo(s.val, s.prev);
-        const shade = ['#137333', '#1A8842', '#229D52', '#2BB263', '#3BC777', '#54DC8B'][i];
-        return (
-          <div key={s.name}>
-            <div className="flex items-center gap-3 py-1">
-              <div style={{ width: 110, fontSize: 12.5, fontWeight: 500, color: T.textMuted, textAlign: 'right' }}>{s.name}</div>
-              <div className="flex-1" style={{ position: 'relative' }}>
-                <div style={{ width: `${s.w}%`, height: 32, background: shade, borderRadius: 3, display: 'flex', alignItems: 'center', paddingLeft: 12, color: 'white', fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', transition: 'width .8s ease' }}>
-                  {fmt.num(s.val)}
-                </div>
-              </div>
-              <div style={{ width: 80, textAlign: 'right' }}>
-                <Delta delta={d} />
-              </div>
-              <div style={{ width: 70, fontSize: 11, color: T.textSubtle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {stepCvr ? `${stepCvr.toFixed(1)}%` : '—'}
-              </div>
-            </div>
-            {i < stages.length - 1 && (
-              <div className="flex items-center gap-3" style={{ paddingLeft: 113 }}>
-                <div style={{ height: 14, fontSize: 10.5, color: T.textSubtle, paddingLeft: 4 }}>↓</div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+  const shades = ['#137333','#1A8842','#229D52','#2BB263','#3BC777','#54DC8B'];
+  const max = G.leads;
+  let html = '';
+  stages.forEach((s, i) => {
+    const w = (s.val / max) * 100;
+    const stepCvr = i === 0 ? null : (s.val / stages[i-1].val) * 100;
+    const d = deltaInfo(s.val, s.prev);
+    html += `<div class="funnel-row">
+      <div class="funnel-label">${s.name}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${w}%;background:${shades[i]}">${fmt.num(s.val)}</div>
+      </div>
+      <div class="funnel-delta">${renderDelta(d)}</div>
+      <div class="funnel-cvr">${stepCvr ? stepCvr.toFixed(1) + '%' : '—'}</div>
+    </div>`;
+    if (i < stages.length - 1) html += `<div class="funnel-arrow">↓</div>`;
+  });
+  return html;
 }
 
 /* ════════════════════════════════════════════════════════════
-   STANDARD PANE BUILDING BLOCKS (panes 2–6)
+   PANES
    ════════════════════════════════════════════════════════════ */
+function paneOverall() {
+  let html = '';
 
-function BreakdownTable({ rows, cols, levelLabel }) {
-  return (
-    <div className="rounded-md overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-      <div className="overflow-x-auto">
-        <table className="w-full" style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: T.surfaceAlt, borderBottom: `1px solid ${T.border}` }}>
-              {cols.map((c, i) => (
-                <th key={i} style={{
-                  padding: '11px 14px',
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                  color: T.textMuted,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  textAlign: c.align || 'left',
-                  whiteSpace: 'nowrap',
-                  borderRight: i === 0 ? `1px solid ${T.border}` : 'none',
-                  position: i === 0 ? 'sticky' : 'static',
-                  left: i === 0 ? 0 : 'auto',
-                  background: T.surfaceAlt,
-                  zIndex: i === 0 ? 1 : 0,
-                }}>{c.header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rIdx) => (
-              <tr key={rIdx} style={{ borderBottom: rIdx < rows.length - 1 ? `1px solid ${T.border}` : 'none' }}
-                  className="hover:bg-gray-50 transition-colors">
-                {cols.map((c, i) => (
-                  <td key={i} style={{
-                    padding: '11px 14px',
-                    fontSize: 12.5,
-                    color: T.text,
-                    textAlign: c.align || 'left',
-                    fontVariantNumeric: c.numeric ? 'tabular-nums' : 'normal',
-                    whiteSpace: 'nowrap',
-                    borderRight: i === 0 ? `1px solid ${T.border}` : 'none',
-                    position: i === 0 ? 'sticky' : 'static',
-                    left: i === 0 ? 0 : 'auto',
-                    background: T.surface,
-                  }}>
-                    {c.render ? c.render(row, rIdx) : row[c.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+  /* Hero */
+  html += `<div class="hero">
+    <div>
+      <div class="hero-eyebrow">Executive snapshot · FYTD 2025–26</div>
+      <div class="hero-text">
+        The group is at <strong>${((G.inscrits / G.inscritsTarget) * 100).toFixed(1)}%</strong> of its enrollment target (${fmt.num(G.inscrits)} of ${fmt.num(G.inscritsTarget)} inscrits) with end-to-end CVR up to <strong>${G.cvr.toFixed(1)}%</strong>. Retention holds steady at ${G.retention.toFixed(1)}% but ESD continues to underperform — Toulouse campus is below 75% of target and the M2 program lags group-wide. Total committed student lifetime value reaches <strong>${fmt.eurM(G.totalSLV / 1_000_000)}</strong>.
       </div>
     </div>
+  </div>`;
+
+  /* Funnel KPIs */
+  html += sectionTitle('Funnel volumes', 'Enrollment funnel');
+  html += `<div class="kpi-grid cols-6">`;
+  ['leads','lq','cand','candidats','admis','inscrits'].forEach((k, i) => {
+    const labels = ['Leads','LQ','Candidatures','Candidats','Admis','Inscrits'];
+    html += kpiCard({
+      label: labels[i],
+      value: fmt.num(G[k]),
+      prev: G[k + 'Prev'],
+      pctTarget: (G[k] / G[k + 'Target']) * 100,
+      target: G[k + 'Target'],
+    });
+  });
+  html += `</div>`;
+
+  /* Lifecycle KPIs */
+  html += sectionTitle('Conversion, value & loyalty', 'Lifecycle health');
+  html += `<div class="kpi-grid cols-4">`;
+  html += kpiCard({ label: 'Lead → Inscrit CVR', value: G.cvr.toFixed(1) + '%', prev: G.cvrPrev, pctTarget: (G.cvr / 23.5) * 100, target: '23.5% target', large: true });
+  html += kpiCard({ label: 'Total Student Lifetime Value', value: fmt.eurM(G.totalSLV / 1_000_000), prev: G.totalSLVprev / 1_000_000, pctTarget: 92.4, target: '€105M target', large: true });
+  html += kpiCard({ label: 'Retention rate', value: G.retention.toFixed(1) + '%', prev: G.retentionPrev, pctTarget: (G.retention / 90) * 100, target: '90% target', large: true });
+  html += kpiCard({ label: 'Satisfaction rate', value: G.satisfaction.toFixed(1), unit: '/5', prev: G.satisfactionPrev, pctTarget: (G.satisfaction / 4.3) * 100, target: '4.3 target', surveyDate: SURVEY_DATES.satisfaction, large: true });
+  html += `</div>`;
+
+  /* Alerts */
+  html += sectionTitle('Alerts', 'Action required');
+  html += `<div class="grid-1-2">
+    <div class="alert-card negative">
+      <div class="alert-eyebrow"><span>Worst-performing campus</span></div>
+      <h2>${WORST_CAMPUS.school} ${WORST_CAMPUS.campus}</h2>
+      <div class="alert-sub">by % of enrollment target achieved</div>
+      <div style="margin-top:16px;display:flex;align-items:flex-start;gap:32px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">% of target</div>
+          <div style="font-size:26px;font-weight:600;color:var(--negative);font-variant-numeric:tabular-nums">${WORST_CAMPUS.pctTarget.toFixed(1)}%</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Inscrits / Target</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums">${fmt.num(WORST_CAMPUS.inscrits)} / ${fmt.num(WORST_CAMPUS.target)}</div>
+          <div style="font-size:11px;color:var(--negative);font-weight:500;margin-top:2px">Gap: ${fmt.num(WORST_CAMPUS.target - WORST_CAMPUS.inscrits)} inscrits</div>
+        </div>
+      </div>
+      <div style="margin-top:16px"><div class="progress"><div class="progress-fill" style="width:${WORST_CAMPUS.pctTarget}%;background:var(--negative)"></div></div></div>
+    </div>
+    <div class="alert-card warning">
+      <div class="alert-eyebrow"><span>Worst-performing programs</span></div>
+      <table class="data-table" style="margin-top:0">
+        <thead><tr>
+          <th>Year</th><th>Degree</th><th class="num">Inscrits</th><th class="num">Target</th><th class="num">% Target</th>
+        </tr></thead>
+        <tbody>
+          ${WORST_PROGRAMS.map(p => `<tr>
+            <td><span style="font-weight:600">${p.year}</span></td>
+            <td style="color:var(--text-muted)">${p.degree}</td>
+            <td class="num">${fmt.num(p.inscrits)}</td>
+            <td class="num" style="color:var(--text-muted)">${fmt.num(p.target)}</td>
+            <td class="num"><span style="color:${p.pctTarget < 85 ? 'var(--warning)' : 'var(--text)'};font-weight:600">${p.pctTarget.toFixed(1)}%</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  /* Funnel viz */
+  html += sectionTitle('Funnel at a glance', 'Group · YTD');
+  html += `<div class="card">${funnelView()}</div>`;
+
+  /* Closing voiceover */
+  html += voiceover(
+    `Funnel volumes are growing across all stages year-on-year. Watch points: <strong>${WORST_CAMPUS.school} ${WORST_CAMPUS.campus}</strong> at ${WORST_CAMPUS.pctTarget.toFixed(0)}% of target, and the <strong>M1 program</strong> overall (largest absolute gap to plan). Consider shifting paid budget from Condé (already at 94%) toward ESD's underperforming campuses for the May–July push.`,
+    'positive'
   );
+
+  return html;
 }
 
-/* Render helpers for table cells */
-const cell = {
-  schoolName: (row) => (
-    <div className="flex items-center gap-2.5">
-      <div style={{ width: 4, height: 22, background: SCHOOLS.find(s => s.name === row.school)?.color || T.brand, borderRadius: 2 }} />
-      <span style={{ fontWeight: 600, color: T.text }}>{row.school}</span>
-    </div>
-  ),
-  campusName: (row) => (
-    <div>
-      <div style={{ fontWeight: 500, color: T.text, fontSize: 12.5 }}>{row.campus}</div>
-      <div style={{ fontSize: 10.5, color: T.textSubtle, marginTop: 1 }}>{row.school}</div>
-    </div>
-  ),
-  programName: (row) => (
-    <div className="flex items-center gap-2.5">
-      <span className="inline-flex items-center justify-center" style={{ width: 30, height: 22, background: row.degree === 'Bachelor' ? T.brandLight : T.infoSoft, color: row.degree === 'Bachelor' ? T.brand : T.info, borderRadius: 3, fontSize: 11, fontWeight: 600 }}>
-        {row.year}
-      </span>
-      <span style={{ color: T.textMuted, fontSize: 12.5 }}>{row.degree}</span>
-    </div>
-  ),
-  numWithDelta: (key, prevKey, opts = {}) => (row) => {
-    const v = row[key];
-    const p = row[prevKey];
-    const d = p != null ? deltaInfo(v, p, opts) : null;
-    const fmtFn = opts.fmt || fmt.num;
-    return (
-      <div className="flex items-center justify-end gap-2">
-        <span style={{ fontWeight: 500 }}>{fmtFn(v)}</span>
-        {d && <Delta delta={d} />}
-      </div>
-    );
-  },
-  pctTarget: (key) => (row) => {
-    const v = row[key];
-    return (
-      <div className="flex items-center justify-end gap-2">
-        <span style={{ fontWeight: 600, color: v >= 95 ? T.positive : v >= 85 ? T.text : v >= 75 ? T.warning : T.negative }}>{v.toFixed(1)}%</span>
-        <MiniBar pct={v} accent={v >= 95 ? T.positive : v >= 85 ? T.brand : v >= 75 ? T.warning : T.negative} />
-      </div>
-    );
-  },
-};
+function paneAwareness() {
+  let html = '';
+  html += voiceover("Awareness measures how prospects discover AD Education's schools. The KPIs below track website traffic, ad reach, and brand recall — the ceiling on every downstream funnel stage.");
 
-/* ════════════════════════════════════════════════════════════
-   PANE 2 — AWARENESS
-   ════════════════════════════════════════════════════════════ */
-function AwarenessPane() {
-  const totalSessions = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].sessions, 0);
-  const totalSessionsPrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].sessionsPrev, 0);
-  const totalSessionsTarget = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].sessionsTarget, 0);
-  const avgPctNew = G.pctNew;
-  const avgReach = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reach, 0) / SCHOOLS.length;
-  const avgReachPrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reachPrev, 0) / SCHOOLS.length;
-  const avgTopMind = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].topMind, 0) / SCHOOLS.length;
-  const avgTopMindPrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].topMindPrev, 0) / SCHOOLS.length;
+  html += sectionTitle('Awareness · group totals', 'High-priority KPIs');
+  html += `<div class="kpi-grid cols-4">`;
+  html += kpiCard({ label: '# Sessions', value: fmt.num(G.sessions), prev: G.sessionsPrev, pctTarget: (G.sessions / G.sessionsTarget) * 100, target: G.sessionsTarget });
+  html += kpiCard({ label: '% New Users', value: G.pctNew.toFixed(1) + '%', prev: G.pctNewPrev, pctTarget: (G.pctNew / 72) * 100, target: '72% target' });
+  html += kpiCard({ label: '% Reach-on-Target', value: G.reach.toFixed(1) + '%', prev: G.reachPrev, pctTarget: (G.reach / 65) * 100, target: '65% target' });
+  html += kpiCard({ label: 'Top of Mind', value: G.topMind + '%', prev: G.topMindPrev, pctTarget: (G.topMind / 60) * 100, target: '60% target', surveyDate: SURVEY_DATES.topMind });
+  html += `</div>`;
 
+  /* Charts row */
+  html += `<div class="grid-2-1">
+    <div class="card">
+      <div class="card-title">Sessions by Channel</div>
+      <div class="card-subtitle">Monthly · Sept 2025 → Apr 2026</div>
+      <div class="chart-wrap"><canvas id="chart-sessions"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Channel mix · YTD</div>
+      <div class="card-subtitle">% of total sessions</div>
+      ${[
+        { name: 'Organic', val: 47.2, c: '#137333' },
+        { name: 'Paid Search', val: 27.8, c: '#3BC777' },
+        { name: 'Social', val: 12.4, c: '#A4DCBA' },
+        { name: 'Direct', val: 6.4, c: '#5F6368' },
+        { name: 'Referral', val: 6.2, c: '#DADCE0' },
+      ].map(c => `
+        <div class="channel-row">
+          <div class="channel-row-head"><span class="name">${c.name}</span><span class="val">${c.val.toFixed(1)}%</span></div>
+          <div class="channel-bar"><div class="channel-bar-fill" style="width:${c.val}%;background:${c.c}"></div></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+
+  /* School breakdown */
+  html += voiceover(`By school: <strong>Condé</strong> leads in raw volume (51K sessions) and Top of Mind (62%). <strong>ESD</strong> trails on every metric — Reach-on-Target below 47% and below the prior period.`);
+  html += sectionTitle('Awareness · School breakdown', 'By school');
   const schoolRows = SCHOOLS.map(s => {
     const d = SCHOOL_DATA[s.name];
     return {
       school: s.name,
-      sessions: d.sessions, sessionsPrev: d.sessionsPrev,
-      pctNew: d.pctNew, pctNewPrev: d.pctNewPrev,
-      reach: d.reach, reachPrev: d.reachPrev,
-      topMind: d.topMind, topMindPrev: d.topMindPrev,
+      ...d,
       pctTarget: (d.sessions / d.sessionsTarget) * 100,
     };
   });
+  html += table([
+    { h: 'School', r: r => schoolCell(r.school) },
+    { h: '# Sessions', align: 'right', r: r => numWithDelta(r.sessions, r.sessionsPrev) },
+    { h: '% New Users', align: 'right', r: r => numWithDelta(r.pctNew, r.pctNewPrev, { fmt: fmt.pct }) },
+    { h: '% Reach-on-Target', align: 'right', r: r => numWithDelta(r.reach, r.reachPrev, { fmt: fmt.pct }) },
+    { h: 'Top of Mind', align: 'right', r: r => numWithDelta(r.topMind, r.topMindPrev, { fmt: v => v + '%' }) },
+    { h: '% Target (Sessions)', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], schoolRows);
 
-  const programRows = PROGRAM_DATA.map(p => ({
+  /* Campus breakdown */
+  html += voiceover('Paris campuses dominate sessions, but secondary cities (Bordeaux, Lyon) over-index on Top of Mind relative to traffic — strong local brand presence.');
+  html += sectionTitle('Awareness · Campus breakdown', 'By campus');
+  const campusRows = CAMPUS_DATA.map(c => ({
+    ...c,
+    pctNew: 60 + ((c.school.charCodeAt(0) + c.campus.charCodeAt(0)) % 15),
+    reach: 45 + ((c.school.charCodeAt(0) + c.campus.charCodeAt(1)) % 22),
+    topMind: 30 + ((c.campus.charCodeAt(0) * 3) % 30),
+    sessionsTarget: Math.round(c.sessions * 1.1),
+  }));
+  html += table([
+    { h: 'Campus', r: r => campusCell(r) },
+    { h: '# Sessions', align: 'right', r: r => fmt.num(r.sessions) },
+    { h: '% New Users', align: 'right', r: r => r.pctNew.toFixed(1) + '%' },
+    { h: '% Reach-on-Target', align: 'right', r: r => r.reach + '%' },
+    { h: 'Top of Mind', align: 'right', r: r => r.topMind + '%' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell((r.sessions / r.sessionsTarget) * 100) },
+  ], campusRows);
+
+  /* Program breakdown */
+  html += voiceover('B1 attracts the most awareness traffic (entry into the funnel), while M1 is increasingly visible online — masters-level prospects research more channels before applying.');
+  html += sectionTitle('Awareness · Program breakdown', 'By program');
+  const progRows = PROGRAM_DATA.map(p => ({
     ...p,
-    sessions: Math.round(totalSessions * (p.leads / G.leads)),
+    sessions: Math.round(G.sessions * (p.leads / G.leads)),
     pctNew: 65 + (p.year === 'B1' ? 8 : p.year === 'B2' ? 4 : p.year === 'B3' ? 1 : p.year === 'M1' ? 5 : -2),
     reach: 50 + (p.year === 'B1' ? 12 : p.year === 'M1' ? 8 : 4),
     topMind: 40 + (p.year === 'B1' ? 18 : p.year === 'M1' ? 12 : 5),
   }));
+  html += table([
+    { h: 'Year · Degree', r: r => programCell(r) },
+    { h: '# Sessions', align: 'right', r: r => fmt.num(r.sessions) },
+    { h: '% New Users', align: 'right', r: r => r.pctNew.toFixed(1) + '%' },
+    { h: '% Reach-on-Target', align: 'right', r: r => r.reach + '%' },
+    { h: 'Top of Mind', align: 'right', r: r => r.topMind + '%' },
+    { h: 'Attendance', align: 'right', r: r => r.attendance.toFixed(1) + '%' },
+  ], progRows);
 
-  return (
-    <div>
-      <VoiceOver text="Awareness measures how prospects discover AD Education's schools. The KPIs below track website traffic, ad reach, and brand recall — the ceiling on every downstream funnel stage." />
-
-      <SectionTitle badge="High-priority KPIs">Awareness · group totals</SectionTitle>
-      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        <KpiCard label="# Sessions" value={fmt.num(totalSessions)} prev={totalSessionsPrev} pctTarget={(totalSessions / totalSessionsTarget) * 100} target={totalSessionsTarget} />
-        <KpiCard label="% New Users" value={avgPctNew.toFixed(1) + '%'} prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].pctNewPrev, 0) / SCHOOLS.length} pctTarget={(avgPctNew / 72) * 100} sub="72% target" />
-        <KpiCard label="% Reach-on-Target" value={avgReach.toFixed(1) + '%'} prev={avgReachPrev} pctTarget={(avgReach / 65) * 100} sub="65% target" />
-        <KpiCard label="Top of Mind" value={avgTopMind.toFixed(0) + '%'} prev={avgTopMindPrev} pctTarget={(avgTopMind / 60) * 100} sub="60% target" surveyDate={SURVEY_DATES.topMind} />
-      </div>
-
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>Sessions by Channel</div>
-          <div style={{ fontSize: 11, color: T.textSubtle, marginBottom: 14 }}>Monthly · Sept 2025 → Apr 2026</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={SESSIONS_TREND} barGap={2}>
-              <CartesianGrid strokeDasharray="2 4" stroke={T.border} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: T.textMuted }} axisLine={{ stroke: T.border }} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: T.textMuted }} axisLine={false} tickLine={false} tickFormatter={(v) => (v / 1000) + 'K'} />
-              <Tooltip cursor={{ fill: 'rgba(0,0,0,0.03)' }} contentStyle={{ fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4 }} />
-              <Bar dataKey="organic" stackId="a" fill={T.brand} />
-              <Bar dataKey="paid" stackId="a" fill="#3BC777" />
-              <Bar dataKey="social" stackId="a" fill="#A4DCBA" />
-              <Bar dataKey="referral" stackId="a" fill="#DADCE0" />
-              <Bar dataKey="direct" stackId="a" fill="#5F6368" />
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-2 flex-wrap">
-            {[
-              { name: 'Organic', c: T.brand },{ name: 'Paid Search', c: '#3BC777' },{ name: 'Social', c: '#A4DCBA' },{ name: 'Referral', c: '#DADCE0' },{ name: 'Direct', c: '#5F6368' },
-            ].map(l => (
-              <div key={l.name} className="flex items-center gap-1.5">
-                <div style={{ width: 10, height: 10, background: l.c, borderRadius: 2 }} />
-                <span style={{ fontSize: 11, color: T.textMuted }}>{l.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>Channel mix · YTD</div>
-          <div style={{ fontSize: 11, color: T.textSubtle, marginBottom: 14 }}>% of total sessions</div>
-          {[
-            { name: 'Organic', val: 47.2, c: T.brand },
-            { name: 'Paid Search', val: 27.8, c: '#3BC777' },
-            { name: 'Social', val: 12.4, c: '#A4DCBA' },
-            { name: 'Direct', val: 6.4, c: '#5F6368' },
-            { name: 'Referral', val: 6.2, c: '#DADCE0' },
-          ].map(c => (
-            <div key={c.name} className="mb-3">
-              <div className="flex justify-between mb-1.5">
-                <span style={{ fontSize: 12, color: T.text, fontWeight: 500 }}>{c.name}</span>
-                <span style={{ fontSize: 12, color: T.textMuted, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{c.val.toFixed(1)}%</span>
-              </div>
-              <div style={{ height: 6, background: T.bg, borderRadius: 3 }}>
-                <div style={{ width: `${c.val}%`, height: '100%', background: c.c, borderRadius: 3 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <VoiceOver text={<span>By school: <strong>Condé</strong> leads in raw volume (51K sessions) and Top of Mind (62%). <strong>ESD</strong> trails on every metric — its Reach-on-Target is below 47% and below the prior period.</span>} />
-      <SectionTitle badge="By school">Awareness · School breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={schoolRows}
-          cols={[
-            { header: 'School', key: 'school', render: cell.schoolName },
-            { header: '# Sessions', align: 'right', numeric: true, render: cell.numWithDelta('sessions', 'sessionsPrev') },
-            { header: '% New Users', align: 'right', numeric: true, render: cell.numWithDelta('pctNew', 'pctNewPrev', { fmt: fmt.pct }) },
-            { header: '% Reach-on-Target', align: 'right', numeric: true, render: cell.numWithDelta('reach', 'reachPrev', { fmt: fmt.pct }) },
-            { header: 'Top of Mind', align: 'right', numeric: true, render: cell.numWithDelta('topMind', 'topMindPrev', { fmt: (v) => v + '%' }) },
-            { header: '% Target (Sessions)', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="Campus-level view shows Paris campuses dominate sessions, but secondary cities (Bordeaux, Lyon) over-index on Top of Mind relative to traffic — a sign of strong local brand presence." />
-      <SectionTitle badge="By campus">Awareness · Campus breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={CAMPUS_DATA.map(c => ({
-            ...c,
-            pctNew: 60 + ((c.school.charCodeAt(0) + c.campus.charCodeAt(0)) % 15),
-            reach: 45 + ((c.school.charCodeAt(0) + c.campus.charCodeAt(1)) % 22),
-            topMind: 30 + ((c.campus.charCodeAt(0) * 3) % 30),
-            sessionsTarget: Math.round(c.sessions * 1.1),
-          }))}
-          cols={[
-            { header: 'Campus', key: 'campus', render: cell.campusName },
-            { header: '# Sessions', align: 'right', numeric: true, render: (r) => fmt.num(r.sessions) },
-            { header: '% New Users', align: 'right', numeric: true, render: (r) => r.pctNew.toFixed(1) + '%' },
-            { header: '% Reach-on-Target', align: 'right', numeric: true, render: (r) => r.reach + '%' },
-            { header: 'Top of Mind', align: 'right', numeric: true, render: (r) => r.topMind + '%' },
-            { header: '% Target', align: 'right', numeric: true, render: (r) => {
-              const pct = (r.sessions / r.sessionsTarget) * 100;
-              return (
-                <div className="flex items-center justify-end gap-2">
-                  <span style={{ fontWeight: 600, color: pct >= 95 ? T.positive : pct >= 85 ? T.text : T.warning }}>{pct.toFixed(1)}%</span>
-                  <MiniBar pct={pct} accent={pct >= 95 ? T.positive : pct >= 85 ? T.brand : T.warning} />
-                </div>
-              );
-            }},
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="By cursus year: B1 attracts the most awareness traffic (entry into the funnel), while M1 is increasingly visible online — masters-level prospects research more channels before applying." />
-      <SectionTitle badge="By program">Awareness · Program breakdown</SectionTitle>
-      <BreakdownTable
-        rows={programRows}
-        cols={[
-          { header: 'Year · Degree', render: cell.programName },
-          { header: '# Sessions', align: 'right', numeric: true, render: (r) => fmt.num(r.sessions) },
-          { header: '% New Users', align: 'right', numeric: true, render: (r) => r.pctNew.toFixed(1) + '%' },
-          { header: '% Reach-on-Target', align: 'right', numeric: true, render: (r) => r.reach + '%' },
-          { header: 'Top of Mind', align: 'right', numeric: true, render: (r) => r.topMind + '%' },
-          { header: 'Attendance', align: 'right', numeric: true, render: (r) => r.attendance.toFixed(1) + '%' },
-        ]}
-      />
-    </div>
-  );
+  return html;
 }
 
-/* ════════════════════════════════════════════════════════════
-   PANE 3 — CONSIDERATION
-   ════════════════════════════════════════════════════════════ */
-function ConsiderationPane() {
-  const avgAttendance = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].attendance, 0) / SCHOOLS.length;
-  const avgAttendancePrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].attendancePrev, 0) / SCHOOLS.length;
-  const avgBrandCons = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].brandCons, 0) / SCHOOLS.length;
-  const avgBrandConsPrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].brandConsPrev, 0) / SCHOOLS.length;
-  const avgEngaged = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].engagedSess, 0) / SCHOOLS.length;
-  const avgEngagedPrev = SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].engagedSessPrev, 0) / SCHOOLS.length;
+function paneConsideration() {
+  let html = '';
+  html += voiceover('Consideration measures whether prospects positively engage once they know us. Event attendance, brand consideration surveys, and engaged-session rates are the core signals.');
 
+  html += sectionTitle('Consideration · group totals', 'High-priority KPIs');
+  html += `<div class="kpi-grid cols-3">`;
+  html += kpiCard({ label: '% Attendance Rate', value: G.attendance.toFixed(1) + '%', prev: G.attendancePrev, pctTarget: (G.attendance / 70) * 100, target: '70% target' });
+  html += kpiCard({ label: 'Brand Consideration', value: G.brandCons + '%', prev: G.brandConsPrev, pctTarget: (G.brandCons / 35) * 100, target: '35% target', surveyDate: SURVEY_DATES.brandCons });
+  html += kpiCard({ label: '% Engaged Sessions', value: G.engagedSess.toFixed(1) + '%', prev: G.engagedSessPrev, pctTarget: (G.engagedSess / 60) * 100, target: '60% target' });
+  html += `</div>`;
+
+  html += voiceover(`Attendance has dropped slightly. <strong>ESD</strong> dropped from 64% → 61.5% (−2.7pp); audience is registering but not showing up. Quick fix: SMS reminders 24h before each event and over-book by 15%.`, 'warning');
+  html += sectionTitle('Consideration · School breakdown', 'By school');
   const schoolRows = SCHOOLS.map(s => {
     const d = SCHOOL_DATA[s.name];
-    return {
-      school: s.name,
-      attendance: d.attendance, attendancePrev: d.attendancePrev,
-      brandCons: d.brandCons, brandConsPrev: d.brandConsPrev,
-      engagedSess: d.engagedSess, engagedSessPrev: d.engagedSessPrev,
-      pctTarget: (d.attendance / 70) * 100,
-    };
+    return { school: s.name, ...d, pctTarget: (d.attendance / 70) * 100 };
+  });
+  html += table([
+    { h: 'School', r: r => schoolCell(r.school) },
+    { h: '% Attendance', align: 'right', r: r => numWithDelta(r.attendance, r.attendancePrev, { fmt: fmt.pct }) },
+    { h: 'Brand Consideration', align: 'right', r: r => numWithDelta(r.brandCons, r.brandConsPrev, { fmt: v => v + '%' }) },
+    { h: '% Engaged Sessions', align: 'right', r: r => numWithDelta(r.engagedSess, r.engagedSessPrev, { fmt: fmt.pct }) },
+    { h: '% Target (Attendance)', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], schoolRows);
+
+  html += voiceover('Larger-city campuses (Paris, Lyon) outperform on attendance — events feel more accessible. Smaller cities show lower attendance but higher per-attendee engagement, suggesting more committed audiences.');
+  html += sectionTitle('Consideration · Campus breakdown', 'By campus');
+  const campusRows = CAMPUS_DATA.map(c => ({
+    ...c,
+    brandCons: 22 + ((c.campus.charCodeAt(0) + c.school.charCodeAt(0)) % 18),
+    engagedSess: 48 + ((c.campus.charCodeAt(1) || 50) % 14),
+  }));
+  html += table([
+    { h: 'Campus', r: r => campusCell(r) },
+    { h: '% Attendance', align: 'right', r: r => r.attendance.toFixed(1) + '%' },
+    { h: 'Brand Cons.', align: 'right', r: r => r.brandCons + '%' },
+    { h: '% Engaged Sessions', align: 'right', r: r => r.engagedSess.toFixed(1) + '%' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell((r.attendance / 70) * 100) },
+  ], campusRows);
+
+  html += voiceover('Bachelor-year prospects engage more deeply (longer sessions, more attendance) than masters. M2 candidates are highly committed but few — niche, high-intent audience.');
+  html += sectionTitle('Consideration · Program breakdown', 'By program');
+  const progRows = PROGRAM_DATA.map(p => ({
+    ...p,
+    brandCons: 25 + (p.year === 'B1' ? 8 : p.year === 'M1' ? 4 : 2),
+    engagedSess: 50 + (p.year === 'B1' ? 10 : p.year === 'M2' ? 12 : 4),
+  }));
+  html += table([
+    { h: 'Year · Degree', r: r => programCell(r) },
+    { h: '% Attendance', align: 'right', r: r => r.attendance.toFixed(1) + '%' },
+    { h: 'Brand Cons.', align: 'right', r: r => r.brandCons + '%' },
+    { h: '% Engaged Sessions', align: 'right', r: r => r.engagedSess.toFixed(1) + '%' },
+    { h: '# Inscrits', align: 'right', r: r => fmt.num(r.inscrits) },
+  ], progRows);
+
+  return html;
+}
+
+function paneConversion() {
+  let html = '';
+  html += voiceover('Conversion is where leads become enrolled students. The 12 KPIs below cover every funnel stage, end-to-end conversion rate, paid-marketing efficiency, and target achievement.');
+
+  html += sectionTitle('Conversion · group totals', 'Funnel volumes');
+  html += `<div class="kpi-grid cols-6">`;
+  ['leads','lq','cand','candidats','admis','inscrits'].forEach((k, i) => {
+    const labels = ['# Leads','# LQ','# Candidatures','# Candidats','# Admis','# Inscrits'];
+    html += kpiCard({
+      label: labels[i],
+      value: fmt.num(G[k]),
+      prev: G[k + 'Prev'],
+      pctTarget: (G[k] / G[k + 'Target']) * 100,
+      target: G[k + 'Target'],
+    });
+  });
+  html += `</div>`;
+
+  html += sectionTitle('Group conversion KPIs', 'Conversion rates & efficiency');
+  html += `<div class="kpi-grid cols-6">`;
+  html += kpiCard({ label: 'Lead → Inscrit CVR', value: G.cvr.toFixed(1) + '%', prev: G.cvrPrev, pctTarget: (G.cvr / 23.5) * 100, target: '23.5% target' });
+  html += kpiCard({ label: 'LQ → Inscrit CVR', value: G.lqInscrit.toFixed(1) + '%', prev: G.lqInscritPrev, pctTarget: (G.lqInscrit / 33) * 100, target: '33% target' });
+  html += kpiCard({ label: '% Enrollment Target', value: ((G.inscrits / G.inscritsTarget) * 100).toFixed(1) + '%', pctTarget: ((G.inscrits / G.inscritsTarget) * 100), target: '100% target' });
+  html += kpiCard({ label: 'Cost per LQ', value: fmt.eur(G.costLQ), prev: G.costLQPrev, invertDelta: true, pctTarget: (35 / G.costLQ) * 100, target: '€35 target' });
+  html += kpiCard({ label: 'Cost per Candidature', value: fmt.eur(G.costCand), prev: G.costCandPrev, invertDelta: true, pctTarget: (65 / G.costCand) * 100, target: '€65 target' });
+  html += kpiCard({ label: '% International Inscrits', value: G.intl.toFixed(1) + '%', prev: G.intlPrev, pctTarget: (G.intl / 20) * 100, target: '20% target' });
+  html += `</div>`;
+
+  /* Funnel + drop-off */
+  html += `<div class="grid-2-1">
+    <div class="card">
+      <div class="card-title">Funnel · group YTD</div>
+      <div class="card-subtitle">Volume + step CVR</div>
+      ${funnelView()}
+    </div>
+    <div class="card">
+      <div class="card-title">Drop-off rate by stage</div>
+      <div class="card-subtitle">Biggest leaks</div>
+      <div class="chart-wrap tall"><canvas id="chart-dropoff"></canvas></div>
+    </div>
+  </div>`;
+
+  html += voiceover(`Three of four schools are above 89% of enrollment target, but <strong>ESD</strong> trails at 74.4% (253 / 340 inscrits). Cost per LQ at ESD jumped to €44 vs. €38 last year. Reallocate part of Condé's budget (already at 94%) to ESD's underperforming campuses.`, 'warning');
+  html += sectionTitle('Conversion · School breakdown', 'By school');
+  const schoolRows = SCHOOLS.map(s => {
+    const d = SCHOOL_DATA[s.name];
+    return { school: s.name, ...d, pctTarget: (d.inscrits / d.inscritsTarget) * 100 };
+  });
+  html += table([
+    { h: 'School', r: r => schoolCell(r.school) },
+    { h: '# Leads', align: 'right', r: r => fmt.num(r.leads) },
+    { h: '# LQ', align: 'right', r: r => fmt.num(r.lq) },
+    { h: '# Inscrits', align: 'right', r: r => numWithDelta(r.inscrits, r.inscritsPrev) },
+    { h: 'Lead→Inscrit', align: 'right', r: r => numWithDelta(r.cvr, r.cvrPrev, { fmt: fmt.pct }) },
+    { h: 'Cost/LQ', align: 'right', r: r => numWithDelta(r.costLQ, r.costLQPrev, { fmt: fmt.eur, invert: true }) },
+    { h: 'Cost/Cand.', align: 'right', r: r => numWithDelta(r.costCand, r.costCandPrev, { fmt: fmt.eur, invert: true }) },
+    { h: '% Intl.', align: 'right', r: r => r.intl.toFixed(1) + '%' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], schoolRows);
+
+  html += voiceover('At campus level, performance is highly polarized. Top performers exceed target; ESD Toulouse, ESD Bordeaux, and ESP Lille are flagged as the bottom-3.');
+  html += sectionTitle('Conversion · Campus breakdown', 'By campus');
+  html += table([
+    { h: 'Campus', r: r => campusCell(r) },
+    { h: '# Leads', align: 'right', r: r => fmt.num(r.leads) },
+    { h: '# LQ', align: 'right', r: r => fmt.num(r.lq) },
+    { h: '# Inscrits', align: 'right', r: r => fmt.num(r.inscrits) },
+    { h: 'Target', align: 'right', r: r => fmt.num(r.target) },
+    { h: 'Lead→Inscrit', align: 'right', r: r => r.cvr.toFixed(1) + '%' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], CAMPUS_DATA);
+
+  html += voiceover(`Programs: B-cycles convert better at later years (B2, B3) when prospects have already chosen the school. <strong>M2</strong> is the lowest % of target (80%) — focus enrollment efforts there in the final months.`);
+  html += sectionTitle('Conversion · Program breakdown', 'By program');
+  html += table([
+    { h: 'Year · Degree', r: r => programCell(r) },
+    { h: '# Leads', align: 'right', r: r => fmt.num(r.leads) },
+    { h: '# LQ', align: 'right', r: r => fmt.num(r.lq) },
+    { h: '# Inscrits', align: 'right', r: r => fmt.num(r.inscrits) },
+    { h: 'Target', align: 'right', r: r => fmt.num(r.target) },
+    { h: 'Lead→Inscrit', align: 'right', r: r => r.cvr.toFixed(1) + '%' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], PROGRAM_DATA);
+
+  return html;
+}
+
+function paneLoyalty() {
+  let html = '';
+  html += voiceover('Loyalty tracks whether enrolled students stay through their cursus. Retention is the strongest predictor of total tuition revenue — small improvements compound across multi-year programs.');
+
+  html += sectionTitle('Loyalty · group totals', 'High-priority KPIs');
+  html += `<div class="kpi-grid cols-3">`;
+  html += kpiCard({ label: 'Total Student Lifetime Value', value: fmt.eurM(G.totalSLV / 1_000_000), prev: G.totalSLVprev / 1_000_000, pctTarget: 92.4, target: '€105M target', large: true });
+  html += kpiCard({ label: 'YoY Retention Rate', value: G.retention.toFixed(1) + '%', prev: G.retentionPrev, pctTarget: (G.retention / 90) * 100, target: '90% target', large: true });
+  html += kpiCard({ label: 'Student Satisfaction', value: G.satisfaction.toFixed(1), unit: '/5', prev: G.satisfactionPrev, pctTarget: (G.satisfaction / 4.3) * 100, target: '4.3 target', surveyDate: SURVEY_DATES.satisfaction, large: true });
+  html += `</div>`;
+
+  html += `<div class="card">
+    <div class="card-title">YoY Retention by Year of Study</div>
+    <div class="card-subtitle">Group · % retained from year N to year N+1</div>
+    <div class="chart-wrap"><canvas id="chart-retention"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#137333"></span>FYTD 2025–26</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#DADCE0"></span>FYTD 2024–25</div>
+    </div>
+  </div>`;
+
+  html += voiceover(`Condé leads on every loyalty metric (91.2% retention, 4.2/5 satisfaction). <strong>ESD</strong> trails on satisfaction (3.7/5) and retention has slightly worsened YoY — investigate end-of-year survey verbatims.`);
+  html += sectionTitle('Loyalty · School breakdown', 'By school');
+  const schoolRows = SCHOOLS.map(s => {
+    const d = SCHOOL_DATA[s.name];
+    const slv = d.activeStudents * s.tuition * (3 * 0.6 + 2 * 0.4) / 1_000_000;
+    return { school: s.name, ...d, slv, slvPrev: slv * 0.96, pctTarget: (d.retention / d.retentionTarget) * 100 };
+  });
+  html += table([
+    { h: 'School', r: r => schoolCell(r.school) },
+    { h: 'Active students', align: 'right', r: r => fmt.num(r.activeStudents) },
+    { h: 'Total SLV', align: 'right', r: r => numWithDelta(r.slv, r.slvPrev, { fmt: fmt.eurM }) },
+    { h: 'Retention', align: 'right', r: r => numWithDelta(r.retention, r.retentionPrev, { fmt: fmt.pct }) },
+    { h: 'Satisfaction', align: 'right', r: r => numWithDelta(r.satisfaction, r.satisfactionPrev, { fmt: v => v.toFixed(1) + '/5' }) },
+    { h: '% Target (Retention)', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], schoolRows);
+
+  html += voiceover('Campus-level satisfaction varies widely. Big-city campuses with stronger student-life infrastructure (Paris, Lyon) report higher satisfaction; smaller sites need more support resources.');
+  html += sectionTitle('Loyalty · Campus breakdown', 'By campus');
+  html += table([
+    { h: 'Campus', r: r => campusCell(r) },
+    { h: 'Retention', align: 'right', r: r => r.retention.toFixed(1) + '%' },
+    { h: 'Satisfaction', align: 'right', r: r => r.satisfaction.toFixed(1) + '/5' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell((r.retention / 90) * 100) },
+  ], CAMPUS_DATA);
+
+  html += voiceover(`The biggest leak is <strong>B3 → M1</strong>: only 64.8% of bachelor graduates continue into the master cycle. A targeted retention campaign for B3 students could have outsized revenue impact (each student retained = +1 year × tuition).`);
+  html += sectionTitle('Loyalty · Program breakdown', 'By program');
+  html += table([
+    { h: 'Year · Degree', r: r => programCell(r) },
+    { h: 'Retention (next year)', align: 'right', r: r => r.retention.toFixed(1) + '%' },
+    { h: 'Satisfaction', align: 'right', r: r => r.satisfaction.toFixed(1) + '/5' },
+    { h: 'Total SLV', align: 'right', r: r => fmt.eurM(r.slv) },
+    { h: '# Inscrits', align: 'right', r: r => fmt.num(r.inscrits) },
+  ], PROGRAM_DATA);
+
+  return html;
+}
+
+function paneAdvocacy() {
+  let html = '';
+  html += voiceover('Advocacy measures whether the AD Education community would recommend the schools. NPS and online review ratings are the leading indicators of word-of-mouth growth — the cheapest acquisition channel.');
+
+  html += sectionTitle('Advocacy · group totals', 'High-priority KPIs');
+  html += `<div class="kpi-grid cols-2">`;
+  /* NPS card (custom) */
+  const npsPct = (G.nps + 100) / 2;
+  const npsColor = G.nps >= 50 ? 'var(--positive)' : G.nps >= 30 ? 'var(--brand)' : G.nps >= 0 ? 'var(--warning)' : 'var(--negative)';
+  const npsDelta = deltaInfo(G.nps, G.npsPrev, { absolute: true });
+  html += `<div class="nps-card">
+    <div class="kpi-label">Student Net Promoter Score</div>
+    <div class="nps-row">
+      <div>
+        <div class="nps-value" style="color:${npsColor}">${G.nps > 0 ? '+' : ''}${G.nps}</div>
+        <div class="nps-meta">${renderDelta(npsDelta)}<span class="survey-date">Surveyed ${SURVEY_DATES.nps}</span></div>
+      </div>
+      <div class="nps-gauge-wrap">
+        <div class="nps-gauge-axis"><span>−100</span><span>0</span><span>+100</span></div>
+        <div class="nps-gauge-bar">
+          <div class="nps-gauge-marker" style="left:${npsPct}%;border:3px solid ${npsColor}"></div>
+        </div>
+        <div class="nps-gauge-target">Target: <strong style="color:var(--text)">+50</strong> · gap: <strong style="color:var(--warning)">${50 - G.nps} pts</strong></div>
+      </div>
+    </div>
+  </div>`;
+  html += kpiCard({ label: 'Average Online Review Rating', value: G.review.toFixed(1), unit: '/5', prev: G.reviewPrev, pctTarget: (G.review / 4.5) * 100, target: '4.5 target', surveyDate: SURVEY_DATES.review, large: true });
+  html += `</div>`;
+
+  html += voiceover(`Condé and ECV are the brand champions (NPS 48 and 38). <strong>ESD</strong> is the only school with negative momentum — NPS dropped from 24 to 22. The drop is concentrated in M1/M2 reviews mentioning placement support.`);
+  html += sectionTitle('Advocacy · School breakdown', 'By school');
+  const schoolRows = SCHOOLS.map(s => {
+    const d = SCHOOL_DATA[s.name];
+    return { school: s.name, ...d, pctTarget: (d.nps / d.npsTarget) * 100 };
+  });
+  html += table([
+    { h: 'School', r: r => schoolCell(r.school) },
+    { h: 'NPS', align: 'right', r: r => numWithDelta(r.nps, r.npsPrev) },
+    { h: 'Online Rating', align: 'right', r: r => numWithDelta(r.review, r.reviewPrev, { fmt: v => v.toFixed(1) + '/5' }) },
+    { h: '% Target (NPS)', align: 'right', r: r => pctTargetCell(r.pctTarget) },
+  ], schoolRows);
+
+  html += voiceover('At campus level, NPS varies dramatically. Top campuses cluster around 50+; bottom campuses below 25 — almost certainly a quality-of-experience issue worth qualitative follow-up.');
+  html += sectionTitle('Advocacy · Campus breakdown', 'By campus');
+  html += table([
+    { h: 'Campus', r: r => campusCell(r) },
+    { h: 'NPS', align: 'right', r: r => `<span style="font-weight:600;color:${r.nps >= 40 ? 'var(--positive)' : r.nps >= 25 ? 'var(--warning)' : 'var(--negative)'}">${r.nps}</span>` },
+    { h: 'Satisfaction', align: 'right', r: r => r.satisfaction.toFixed(1) + '/5' },
+    { h: '% Target', align: 'right', r: r => pctTargetCell((r.nps / 45) * 100) },
+  ], CAMPUS_DATA);
+
+  html += voiceover('Bachelor students are markedly more likely to recommend than masters. M1 is the weakest segment — short program, high pressure, less time to feel rooted in the community.');
+  html += sectionTitle('Advocacy · Program breakdown', 'By program');
+  html += table([
+    { h: 'Year · Degree', r: r => programCell(r) },
+    { h: 'NPS', align: 'right', r: r => `<span style="font-weight:600;color:${r.nps >= 40 ? 'var(--positive)' : r.nps >= 25 ? 'var(--warning)' : 'var(--negative)'}">${r.nps}</span>` },
+    { h: 'Satisfaction', align: 'right', r: r => r.satisfaction.toFixed(1) + '/5' },
+    { h: '# Inscrits', align: 'right', r: r => fmt.num(r.inscrits) },
+  ], PROGRAM_DATA);
+
+  return html;
+}
+
+function paneGlossary(searchTerm = '') {
+  const q = searchTerm.trim().toLowerCase();
+  const filteredGlossary = q ? GLOSSARY.filter(g => g.term.toLowerCase().includes(q) || g.def.toLowerCase().includes(q) || g.sub.toLowerCase().includes(q)) : GLOSSARY;
+  const filteredTax = q ? TAXONOMY.filter(t => t.term.toLowerCase().includes(q) || t.def.toLowerCase().includes(q)) : TAXONOMY;
+
+  /* Group glossary by sub */
+  const grouped = {};
+  filteredGlossary.forEach(g => {
+    if (!grouped[g.sub]) grouped[g.sub] = [];
+    grouped[g.sub].push(g);
   });
 
-  return (
-    <div>
-      <VoiceOver text="Consideration measures whether prospects positively engage once they know us. Event attendance, brand consideration surveys, and engaged-session rates are the core signals." />
+  let html = '';
+  html += voiceover('Definitions of every metric, taxonomy term, and platform concept used throughout this cockpit. Search across both sections at once.');
 
-      <SectionTitle badge="High-priority KPIs">Consideration · group totals</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <KpiCard label="% Attendance Rate" value={avgAttendance.toFixed(1) + '%'} prev={avgAttendancePrev} pctTarget={(avgAttendance / 70) * 100} sub="70% target" />
-        <KpiCard label="Brand Consideration" value={avgBrandCons.toFixed(0) + '%'} prev={avgBrandConsPrev} pctTarget={(avgBrandCons / 35) * 100} sub="35% target" surveyDate={SURVEY_DATES.brandCons} />
-        <KpiCard label="% Engaged Sessions" value={avgEngaged.toFixed(1) + '%'} prev={avgEngagedPrev} pctTarget={(avgEngaged / 60) * 100} sub="60% target" />
-      </div>
+  html += `<div class="search-bar">
+    ${ICONS.search}
+    <input type="text" id="glossary-search" placeholder="Search glossary & taxonomy…" value="${searchTerm.replace(/"/g, '&quot;')}" oninput="onGlossarySearch(event)" />
+    ${q ? `<button onclick="document.getElementById('glossary-search').value='';onGlossarySearch({target:{value:''}});">${ICONS.x}</button>` : ''}
+    <span class="count">${filteredGlossary.length + filteredTax.length} of ${GLOSSARY.length + TAXONOMY.length} terms</span>
+  </div>`;
 
-      <VoiceOver tone="warning" text={<span>Attendance rate has dropped slightly across the group. <strong>ESD</strong> dropped from 64% → 61.5% (−2.7pp); audience is registering but not showing up. Quick fix: add SMS reminders 24h before each event and over-book by 15%.</span>} />
-      <SectionTitle badge="By school">Consideration · School breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={schoolRows}
-          cols={[
-            { header: 'School', render: cell.schoolName },
-            { header: '% Attendance', align: 'right', numeric: true, render: cell.numWithDelta('attendance', 'attendancePrev', { fmt: fmt.pct }) },
-            { header: 'Brand Consideration', align: 'right', numeric: true, render: cell.numWithDelta('brandCons', 'brandConsPrev', { fmt: (v) => v + '%' }) },
-            { header: '% Engaged Sessions', align: 'right', numeric: true, render: cell.numWithDelta('engagedSess', 'engagedSessPrev', { fmt: fmt.pct }) },
-            { header: '% Target (Attendance)', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
+  /* A&C Taxonomy */
+  html += sectionTitle('A&C Taxonomy', 'Awareness & Conversion taxonomy');
+  if (filteredTax.length === 0) {
+    html += `<div class="card" style="text-align:center;color:var(--text-subtle);font-size:13px;padding:24px">No matching taxonomy terms.</div>`;
+  } else {
+    html += `<div class="table-wrap" style="margin-bottom:32px"><div class="table-scroll"><table class="data-table">
+      <thead><tr><th>Term</th><th>Definition</th><th>Identifiant</th><th>Spécificité</th><th>Source</th></tr></thead><tbody>`;
+    filteredTax.forEach(t => {
+      html += `<tr>
+        <td style="font-weight:600;color:var(--brand);white-space:nowrap">${t.term}</td>
+        <td>${t.def}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted)">${t.id}</td>
+        <td style="color:var(--text-muted)">${t.spec}</td>
+        <td><span class="taxonomy-source">${t.source}</span></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
 
-      <VoiceOver text="Larger-city campuses (Paris, Lyon) consistently outperform on attendance — events feel more accessible. Smaller cities show lower attendance but higher per-attendee engagement, suggesting more committed audiences." />
-      <SectionTitle badge="By campus">Consideration · Campus breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={CAMPUS_DATA.map(c => ({
-            ...c,
-            brandCons: 22 + ((c.campus.charCodeAt(0) + c.school.charCodeAt(0)) % 18),
-            engagedSess: 48 + ((c.campus.charCodeAt(1) || 50) % 14),
-            attendanceTarget: 70,
-          }))}
-          cols={[
-            { header: 'Campus', render: cell.campusName },
-            { header: '% Attendance', align: 'right', numeric: true, render: (r) => r.attendance.toFixed(1) + '%' },
-            { header: 'Brand Cons.', align: 'right', numeric: true, render: (r) => r.brandCons + '%' },
-            { header: '% Engaged Sessions', align: 'right', numeric: true, render: (r) => r.engagedSess.toFixed(1) + '%' },
-            { header: '% Target', align: 'right', numeric: true, render: (r) => {
-              const pct = (r.attendance / r.attendanceTarget) * 100;
-              return (
-                <div className="flex items-center justify-end gap-2">
-                  <span style={{ fontWeight: 600, color: pct >= 95 ? T.positive : pct >= 85 ? T.text : T.warning }}>{pct.toFixed(1)}%</span>
-                  <MiniBar pct={pct} accent={pct >= 95 ? T.positive : pct >= 85 ? T.brand : T.warning} />
-                </div>
-              );
-            }},
-          ]}
-        />
-      </div>
+  /* Glossary */
+  html += sectionTitle('Platform Glossary', `${filteredGlossary.length} terms · GA4`);
+  if (Object.keys(grouped).length === 0) {
+    html += `<div class="card" style="text-align:center;color:var(--text-subtle);font-size:13px;padding:24px">No matching terms.</div>`;
+  } else {
+    Object.entries(grouped).forEach(([sub, items]) => {
+      html += `<div class="glossary-group">
+        <div class="glossary-group-head">
+          <h4>${sub}</h4>
+          <span class="count">${items.length} terms</span>
+        </div>
+        <div>
+          ${items.map(g => `<div class="glossary-row">
+            <div class="glossary-term">${g.term}</div>
+            <div class="glossary-def">${g.def}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    });
+  }
 
-      <VoiceOver text="Bachelor-year prospects engage more deeply (longer sessions, more attendance) than masters. M2 conversion-stage candidates are highly committed but few — a niche, high-intent audience." />
-      <SectionTitle badge="By program">Consideration · Program breakdown</SectionTitle>
-      <BreakdownTable
-        rows={PROGRAM_DATA.map(p => ({
-          ...p,
-          brandCons: 25 + (p.year === 'B1' ? 8 : p.year === 'M1' ? 4 : 2),
-          engagedSess: 50 + (p.year === 'B1' ? 10 : p.year === 'M2' ? 12 : 4),
-        }))}
-        cols={[
-          { header: 'Year · Degree', render: cell.programName },
-          { header: '% Attendance', align: 'right', numeric: true, render: (r) => r.attendance.toFixed(1) + '%' },
-          { header: 'Brand Cons.', align: 'right', numeric: true, render: (r) => r.brandCons + '%' },
-          { header: '% Engaged Sessions', align: 'right', numeric: true, render: (r) => r.engagedSess.toFixed(1) + '%' },
-          { header: '# Inscrits', align: 'right', numeric: true, render: (r) => fmt.num(r.inscrits) },
-        ]}
-      />
-    </div>
-  );
+  return html;
 }
 
 /* ════════════════════════════════════════════════════════════
-   PANE 4 — CONVERSION
+   CHART RENDERING (Chart.js)
    ════════════════════════════════════════════════════════════ */
-function ConversionPane() {
-  const dropoffData = [
-    { stage: 'LQ → Cand.', val: 100 - (G.cand / G.lq * 100), color: T.negative },
+let chartInstances = [];
+function destroyCharts() {
+  chartInstances.forEach(c => c.destroy());
+  chartInstances = [];
+}
+
+Chart.defaults.font.family = '"IBM Plex Sans", -apple-system, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#5F6368';
+
+function initAwarenessCharts() {
+  const el = document.getElementById('chart-sessions');
+  if (!el) return;
+  const ds = [
+    { label: 'Organic', data: SESSIONS_TREND.map(d => d.organic), backgroundColor: '#137333' },
+    { label: 'Paid Search', data: SESSIONS_TREND.map(d => d.paid), backgroundColor: '#3BC777' },
+    { label: 'Social', data: SESSIONS_TREND.map(d => d.social), backgroundColor: '#A4DCBA' },
+    { label: 'Referral', data: SESSIONS_TREND.map(d => d.referral), backgroundColor: '#DADCE0' },
+    { label: 'Direct', data: SESSIONS_TREND.map(d => d.direct), backgroundColor: '#5F6368' },
+  ];
+  chartInstances.push(new Chart(el, {
+    type: 'bar',
+    data: { labels: SESSIONS_TREND.map(d => d.month), datasets: ds },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } } },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, grid: { color: '#E8EAED' }, ticks: { callback: v => (v/1000) + 'K' } },
+      },
+    },
+  }));
+}
+
+function initConversionCharts() {
+  const el = document.getElementById('chart-dropoff');
+  if (!el) return;
+  const data = [
+    { stage: 'LQ → Cand.', val: 100 - (G.cand / G.lq * 100), color: '#C5221F' },
     { stage: 'Lead → LQ', val: 100 - (G.lq / G.leads * 100), color: '#E37400' },
-    { stage: 'Admis → Inscrit', val: 100 - (G.inscrits / G.admis * 100), color: T.warning },
-    { stage: 'Candidat → Admis', val: 100 - (G.admis / G.candidats * 100), color: '#F9AB00' },
-    { stage: 'Cand. → Candidat', val: 100 - (G.candidats / G.cand * 100), color: '#FAD05B' },
-  ].sort((a, b) => b.val - a.val);
-
-  const schoolRows = SCHOOLS.map(s => {
-    const d = SCHOOL_DATA[s.name];
-    return {
-      school: s.name,
-      leads: d.leads, leadsPrev: d.leadsPrev,
-      lq: d.lq, lqPrev: d.lqPrev,
-      inscrits: d.inscrits, inscritsPrev: d.inscritsPrev,
-      cvr: d.cvr, cvrPrev: d.cvrPrev,
-      lqInscrit: d.lqInscrit, lqInscritPrev: d.lqInscritPrev,
-      costLQ: d.costLQ, costLQPrev: d.costLQPrev,
-      costCand: d.costCand, costCandPrev: d.costCandPrev,
-      intl: d.intl, intlPrev: d.intlPrev,
-      pctTarget: (d.inscrits / d.inscritsTarget) * 100,
-    };
-  });
-
-  return (
-    <div>
-      <VoiceOver text="Conversion is where leads become enrolled students. The 12 KPIs below cover every funnel stage, end-to-end conversion rate, paid-marketing efficiency, and target achievement." />
-
-      <SectionTitle badge="Funnel volumes">Conversion · group totals</SectionTitle>
-      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        <KpiCard label="# Leads" value={fmt.num(G.leads)} prev={G.leadsPrev} pctTarget={(G.leads / G.leadsTarget) * 100} target={G.leadsTarget} />
-        <KpiCard label="# LQ" value={fmt.num(G.lq)} prev={G.lqPrev} pctTarget={(G.lq / G.lqTarget) * 100} target={G.lqTarget} />
-        <KpiCard label="# Candidatures" value={fmt.num(G.cand)} prev={G.candPrev} pctTarget={(G.cand / G.candTarget) * 100} target={G.candTarget} />
-        <KpiCard label="# Candidats" value={fmt.num(G.candidats)} prev={G.candidatsPrev} pctTarget={(G.candidats / G.candidatsTarget) * 100} target={G.candidatsTarget} />
-        <KpiCard label="# Admis" value={fmt.num(G.admis)} prev={G.admisPrev} pctTarget={(G.admis / G.admisTarget) * 100} target={G.admisTarget} />
-        <KpiCard label="# Inscrits" value={fmt.num(G.inscrits)} prev={G.inscritsPrev} pctTarget={(G.inscrits / G.inscritsTarget) * 100} target={G.inscritsTarget} />
-      </div>
-
-      <SectionTitle badge="Conversion rates & efficiency">Group conversion KPIs</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        <KpiCard label="Lead → Inscrit CVR" value={G.cvr.toFixed(1) + '%'} prev={G.cvrPrev} pctTarget={(G.cvr / 23.5) * 100} sub="23.5% target" />
-        <KpiCard label="LQ → Inscrit CVR" value={G.lqInscrit.toFixed(1) + '%'} prev={(G.inscritsPrev / G.lqPrev * 100)} pctTarget={(G.lqInscrit / 33) * 100} sub="33% target" />
-        <KpiCard label="% Enrollment Target" value={((G.inscrits / G.inscritsTarget) * 100).toFixed(1) + '%'} pctTarget={((G.inscrits / G.inscritsTarget) * 100)} sub="100% target" />
-        <KpiCard label="Cost per LQ" value={fmt.eur(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costLQ * SCHOOL_DATA[x.name].lq, 0) / G.lq)} invertDelta prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costLQPrev * SCHOOL_DATA[x.name].lqPrev, 0) / G.lqPrev} pctTarget={(35 / (SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costLQ * SCHOOL_DATA[x.name].lq, 0) / G.lq)) * 100} sub="€35 target" />
-        <KpiCard label="Cost per Candidature" value={fmt.eur(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costCand * SCHOOL_DATA[x.name].cand, 0) / G.cand)} invertDelta prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costCandPrev * SCHOOL_DATA[x.name].candPrev, 0) / G.candPrev} pctTarget={(65 / (SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].costCand * SCHOOL_DATA[x.name].cand, 0) / G.cand)) * 100} sub="€65 target" />
-        <KpiCard label="% International Inscrits" value={(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].intl * SCHOOL_DATA[x.name].inscrits, 0) / G.inscrits).toFixed(1) + '%'} prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].intlPrev * SCHOOL_DATA[x.name].inscritsPrev, 0) / G.inscritsPrev} pctTarget={(SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].intl * SCHOOL_DATA[x.name].inscrits, 0) / G.inscrits / 20) * 100} sub="20% target" />
-      </div>
-
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: '1.4fr 1fr' }}>
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>Funnel · group YTD</div>
-          <div style={{ fontSize: 11, color: T.textSubtle, marginBottom: 14 }}>Volume + step CVR</div>
-          <FunnelView />
-        </div>
-        <div className="rounded-md p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>Drop-off rate by stage</div>
-          <div style={{ fontSize: 11, color: T.textSubtle, marginBottom: 14 }}>Biggest leaks</div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={dropoffData} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="2 4" stroke={T.border} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: T.textMuted }} axisLine={false} tickLine={false} tickFormatter={(v) => v + '%'} />
-              <YAxis type="category" dataKey="stage" tick={{ fontSize: 11, fill: T.text }} axisLine={false} tickLine={false} width={120} />
-              <Tooltip contentStyle={{ fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4 }} formatter={(v) => v.toFixed(1) + '%'} />
-              <Bar dataKey="val" radius={[0, 3, 3, 0]}>
-                {dropoffData.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <VoiceOver tone="warning" text={<span>Three of four schools are above 89% of enrollment target, but <strong>ESD</strong> trails at 74.4% (253 / 340 inscrits). The cost per LQ at ESD jumped to €44 vs. €38 last year. Reallocate part of Condé's budget (already at 94%) to ESD's underperforming campuses for the May–July push.</span>} />
-      <SectionTitle badge="By school">Conversion · School breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={schoolRows}
-          cols={[
-            { header: 'School', render: cell.schoolName },
-            { header: '# Leads', align: 'right', numeric: true, render: (r) => fmt.num(r.leads) },
-            { header: '# LQ', align: 'right', numeric: true, render: (r) => fmt.num(r.lq) },
-            { header: '# Inscrits', align: 'right', numeric: true, render: cell.numWithDelta('inscrits', 'inscritsPrev') },
-            { header: 'Lead→Inscrit', align: 'right', numeric: true, render: cell.numWithDelta('cvr', 'cvrPrev', { fmt: fmt.pct }) },
-            { header: 'Cost/LQ', align: 'right', numeric: true, render: cell.numWithDelta('costLQ', 'costLQPrev', { fmt: fmt.eur, invert: true }) },
-            { header: 'Cost/Cand.', align: 'right', numeric: true, render: cell.numWithDelta('costCand', 'costCandPrev', { fmt: fmt.eur, invert: true }) },
-            { header: '% Intl.', align: 'right', numeric: true, render: (r) => r.intl.toFixed(1) + '%' },
-            { header: '% Target', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="At campus level, performance is highly polarized. Top performers exceed target; ESD Toulouse, ESD Bordeaux, and ESP Lille are flagged as the bottom-3." />
-      <SectionTitle badge="By campus">Conversion · Campus breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={CAMPUS_DATA}
-          cols={[
-            { header: 'Campus', render: cell.campusName },
-            { header: '# Leads', align: 'right', numeric: true, render: (r) => fmt.num(r.leads) },
-            { header: '# LQ', align: 'right', numeric: true, render: (r) => fmt.num(r.lq) },
-            { header: '# Inscrits', align: 'right', numeric: true, render: (r) => fmt.num(r.inscrits) },
-            { header: 'Target', align: 'right', numeric: true, render: (r) => fmt.num(r.target) },
-            { header: 'Lead→Inscrit', align: 'right', numeric: true, render: (r) => r.cvr.toFixed(1) + '%' },
-            { header: '% Target', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
-
-      <VoiceOver text={<span>Programs: B-cycles convert better at later years (B2, B3) when prospects have already chosen the school. <strong>M2</strong> is the lowest % of target (80%) — focus enrollment efforts there in the final months.</span>} />
-      <SectionTitle badge="By program">Conversion · Program breakdown</SectionTitle>
-      <BreakdownTable
-        rows={PROGRAM_DATA}
-        cols={[
-          { header: 'Year · Degree', render: cell.programName },
-          { header: '# Leads', align: 'right', numeric: true, render: (r) => fmt.num(r.leads) },
-          { header: '# LQ', align: 'right', numeric: true, render: (r) => fmt.num(r.lq) },
-          { header: '# Inscrits', align: 'right', numeric: true, render: (r) => fmt.num(r.inscrits) },
-          { header: 'Target', align: 'right', numeric: true, render: (r) => fmt.num(r.target) },
-          { header: 'Lead→Inscrit', align: 'right', numeric: true, render: (r) => r.cvr.toFixed(1) + '%' },
-          { header: '% Target', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-        ]}
-      />
-    </div>
-  );
+    { stage: 'Admis → Inscrit', val: 100 - (G.inscrits / G.admis * 100), color: '#F9AB00' },
+    { stage: 'Candidat → Admis', val: 100 - (G.admis / G.candidats * 100), color: '#FBC02D' },
+    { stage: 'Cand. → Candidat', val: 100 - (G.candidats / G.cand * 100), color: '#FDE68A' },
+  ].sort((a,b) => b.val - a.val);
+  chartInstances.push(new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.stage),
+      datasets: [{ data: data.map(d => d.val), backgroundColor: data.map(d => d.color), borderRadius: 3 }],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x.toFixed(1) + '%' } } },
+      scales: {
+        x: { ticks: { callback: v => v + '%' }, grid: { color: '#E8EAED' } },
+        y: { grid: { display: false } },
+      },
+    },
+  }));
 }
 
-/* ════════════════════════════════════════════════════════════
-   PANE 5 — LOYALTY
-   ════════════════════════════════════════════════════════════ */
-function LoyaltyPane() {
-  const retentionByYear = [
+function initLoyaltyCharts() {
+  const el = document.getElementById('chart-retention');
+  if (!el) return;
+  const data = [
     { year: 'B1 → B2', val: 88.2, prev: 86.1 },
     { year: 'B2 → B3', val: 92.1, prev: 90.5 },
     { year: 'B3 → M1', val: 64.8, prev: 62.2 },
     { year: 'M1 → M2', val: 94.6, prev: 93.1 },
   ];
-
-  return (
-    <div>
-      <VoiceOver text="Loyalty tracks whether enrolled students stay through their cursus. Retention is the strongest predictor of total tuition revenue — small improvements compound across multi-year programs." />
-
-      <SectionTitle badge="High-priority KPIs">Loyalty · group totals</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <KpiCard large label="Total Student Lifetime Value" value={fmt.eurM(G.totalSLV / 1_000_000)} prev={G.totalSLVprev / 1_000_000} pctTarget={92.4} sub="€105M target" />
-        <KpiCard large label="YoY Retention Rate" value={G.retention.toFixed(1) + '%'} prev={G.retentionPrev} pctTarget={(G.retention / 90) * 100} sub="90% target" />
-        <KpiCard large label="Student Satisfaction" value={G.satisfaction.toFixed(1)} unit="/5" prev={G.satisfactionPrev} pctTarget={(G.satisfaction / 4.3) * 100} sub="4.3 target" surveyDate={SURVEY_DATES.satisfaction} />
-      </div>
-
-      <div className="rounded-md p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>YoY Retention by Year of Study</div>
-        <div style={{ fontSize: 11, color: T.textSubtle, marginBottom: 14 }}>Group · % retained from year N to year N+1</div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={retentionByYear} margin={{ top: 10, right: 16 }}>
-            <CartesianGrid strokeDasharray="2 4" stroke={T.border} vertical={false} />
-            <XAxis dataKey="year" tick={{ fontSize: 12, fill: T.textMuted }} axisLine={{ stroke: T.border }} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: T.textMuted }} axisLine={false} tickLine={false} domain={[50, 100]} tickFormatter={(v) => v + '%'} />
-            <Tooltip contentStyle={{ fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4 }} formatter={(v) => v.toFixed(1) + '%'} />
-            <Bar dataKey="prev" fill="#DADCE0" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="val" fill={T.brand} radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2">
-          <div className="flex items-center gap-1.5"><div style={{ width: 10, height: 10, background: T.brand, borderRadius: 2 }} /><span style={{ fontSize: 11, color: T.textMuted }}>FYTD 2025–26</span></div>
-          <div className="flex items-center gap-1.5"><div style={{ width: 10, height: 10, background: '#DADCE0', borderRadius: 2 }} /><span style={{ fontSize: 11, color: T.textMuted }}>FYTD 2024–25</span></div>
-        </div>
-      </div>
-
-      <VoiceOver text={<span>Condé leads on every loyalty metric (91.2% retention, 4.2/5 satisfaction). <strong>ESD</strong> trails on satisfaction (3.7/5) and retention has slightly worsened YoY — investigate end-of-year survey verbatims.</span>} />
-      <SectionTitle badge="By school">Loyalty · School breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={SCHOOLS.map(s => {
-            const d = SCHOOL_DATA[s.name];
-            const slv = d.activeStudents * s.tuition * (3 * 0.6 + 2 * 0.4) / 1_000_000;
-            const slvPrev = slv * 0.96;
-            return {
-              school: s.name,
-              slv, slvPrev,
-              activeStudents: d.activeStudents,
-              retention: d.retention, retentionPrev: d.retentionPrev,
-              satisfaction: d.satisfaction, satisfactionPrev: d.satisfactionPrev,
-              pctTarget: (d.retention / d.retentionTarget) * 100,
-            };
-          })}
-          cols={[
-            { header: 'School', render: cell.schoolName },
-            { header: 'Active students', align: 'right', numeric: true, render: (r) => fmt.num(r.activeStudents) },
-            { header: 'Total SLV', align: 'right', numeric: true, render: cell.numWithDelta('slv', 'slvPrev', { fmt: fmt.eurM }) },
-            { header: 'Retention', align: 'right', numeric: true, render: cell.numWithDelta('retention', 'retentionPrev', { fmt: fmt.pct }) },
-            { header: 'Satisfaction', align: 'right', numeric: true, render: cell.numWithDelta('satisfaction', 'satisfactionPrev', { fmt: (v) => v.toFixed(1) + '/5' }) },
-            { header: '% Target (Retention)', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="Campus-level satisfaction varies widely. Big-city campuses with stronger student-life infrastructure (Paris, Lyon) report higher satisfaction; smaller sites need more support resources." />
-      <SectionTitle badge="By campus">Loyalty · Campus breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={CAMPUS_DATA}
-          cols={[
-            { header: 'Campus', render: cell.campusName },
-            { header: 'Retention', align: 'right', numeric: true, render: (r) => r.retention.toFixed(1) + '%' },
-            { header: 'Satisfaction', align: 'right', numeric: true, render: (r) => r.satisfaction.toFixed(1) + '/5' },
-            { header: '% Target', align: 'right', numeric: true, render: (r) => {
-              const pct = (r.retention / 90) * 100;
-              return (
-                <div className="flex items-center justify-end gap-2">
-                  <span style={{ fontWeight: 600, color: pct >= 100 ? T.positive : pct >= 95 ? T.text : T.warning }}>{pct.toFixed(1)}%</span>
-                  <MiniBar pct={Math.min(100, pct)} accent={pct >= 100 ? T.positive : pct >= 95 ? T.brand : T.warning} />
-                </div>
-              );
-            }},
-          ]}
-        />
-      </div>
-
-      <VoiceOver text={<span>The biggest leak is <strong>B3 → M1</strong>: only 64.8% of bachelor graduates continue into the master cycle. Many take a gap year or transfer to other institutions. Targeted retention campaign for B3 students could have outsized revenue impact (each student retained = +1 year × tuition).</span>} />
-      <SectionTitle badge="By program">Loyalty · Program breakdown</SectionTitle>
-      <BreakdownTable
-        rows={PROGRAM_DATA}
-        cols={[
-          { header: 'Year · Degree', render: cell.programName },
-          { header: 'Retention (next year)', align: 'right', numeric: true, render: (r) => r.retention.toFixed(1) + '%' },
-          { header: 'Satisfaction', align: 'right', numeric: true, render: (r) => r.satisfaction.toFixed(1) + '/5' },
-          { header: 'Total SLV', align: 'right', numeric: true, render: (r) => fmt.eurM(r.slv) },
-          { header: '# Inscrits', align: 'right', numeric: true, render: (r) => fmt.num(r.inscrits) },
-        ]}
-      />
-    </div>
-  );
+  chartInstances.push(new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.year),
+      datasets: [
+        { label: 'FYTD 2024–25', data: data.map(d => d.prev), backgroundColor: '#DADCE0', borderRadius: 3 },
+        { label: 'FYTD 2025–26', data: data.map(d => d.val), backgroundColor: '#137333', borderRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.parsed.y.toFixed(1) + '%' } } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { min: 50, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#E8EAED' } },
+      },
+    },
+  }));
 }
 
 /* ════════════════════════════════════════════════════════════
-   PANE 6 — ADVOCACY
+   STATE & ROUTING
    ════════════════════════════════════════════════════════════ */
-function AdvocacyPane() {
-  return (
-    <div>
-      <VoiceOver text="Advocacy measures whether the AD Education community would recommend the schools. NPS and online review ratings are the leading indicators of word-of-mouth growth — the cheapest acquisition channel." />
+let activePane = 'overall';
+let glossarySearch = '';
 
-      <SectionTitle badge="High-priority KPIs">Advocacy · group totals</SectionTitle>
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-        <NPSCard nps={G.nps} prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].npsPrev, 0) / SCHOOLS.length} />
-        <KpiCard large label="Average Online Review Rating" value={G.review.toFixed(1)} unit="/5" prev={SCHOOLS.reduce((s, x) => s + SCHOOL_DATA[x.name].reviewPrev, 0) / SCHOOLS.length} pctTarget={(G.review / 4.5) * 100} sub="4.5 target" surveyDate={SURVEY_DATES.review} />
-      </div>
-
-      <VoiceOver text={<span>Condé and ECV are the brand champions (NPS 48 and 38). <strong>ESD</strong> is the only school with negative momentum — NPS dropped from 24 to 22. The drop is concentrated in M1/M2 reviews mentioning placement support.</span>} />
-      <SectionTitle badge="By school">Advocacy · School breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={SCHOOLS.map(s => {
-            const d = SCHOOL_DATA[s.name];
-            return {
-              school: s.name,
-              nps: d.nps, npsPrev: d.npsPrev,
-              review: d.review, reviewPrev: d.reviewPrev,
-              pctTarget: (d.nps / d.npsTarget) * 100,
-            };
-          })}
-          cols={[
-            { header: 'School', render: cell.schoolName },
-            { header: 'NPS', align: 'right', numeric: true, render: cell.numWithDelta('nps', 'npsPrev') },
-            { header: 'Online Rating', align: 'right', numeric: true, render: cell.numWithDelta('review', 'reviewPrev', { fmt: (v) => v.toFixed(1) + '/5' }) },
-            { header: '% Target (NPS)', align: 'right', numeric: true, render: cell.pctTarget('pctTarget') },
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="At campus level, NPS varies dramatically. Top campuses cluster around 50+; bottom campuses below 25 — almost certainly a quality-of-experience issue worth qualitative follow-up." />
-      <SectionTitle badge="By campus">Advocacy · Campus breakdown</SectionTitle>
-      <div className="mb-6">
-        <BreakdownTable
-          rows={CAMPUS_DATA}
-          cols={[
-            { header: 'Campus', render: cell.campusName },
-            { header: 'NPS', align: 'right', numeric: true, render: (r) => (
-              <span style={{ fontWeight: 600, color: r.nps >= 40 ? T.positive : r.nps >= 25 ? T.warning : T.negative }}>{r.nps}</span>
-            )},
-            { header: 'Satisfaction', align: 'right', numeric: true, render: (r) => r.satisfaction.toFixed(1) + '/5' },
-            { header: '% Target', align: 'right', numeric: true, render: (r) => {
-              const pct = (r.nps / 45) * 100;
-              return (
-                <div className="flex items-center justify-end gap-2">
-                  <span style={{ fontWeight: 600 }}>{pct.toFixed(0)}%</span>
-                  <MiniBar pct={Math.min(100, Math.max(0, pct))} accent={pct >= 100 ? T.positive : pct >= 75 ? T.brand : T.warning} />
-                </div>
-              );
-            }},
-          ]}
-        />
-      </div>
-
-      <VoiceOver text="Bachelor students are markedly more likely to recommend than masters. M1 is the weakest segment — short program, high pressure, less time to feel rooted in the community." />
-      <SectionTitle badge="By program">Advocacy · Program breakdown</SectionTitle>
-      <BreakdownTable
-        rows={PROGRAM_DATA}
-        cols={[
-          { header: 'Year · Degree', render: cell.programName },
-          { header: 'NPS', align: 'right', numeric: true, render: (r) => (
-            <span style={{ fontWeight: 600, color: r.nps >= 40 ? T.positive : r.nps >= 25 ? T.warning : T.negative }}>{r.nps}</span>
-          )},
-          { header: 'Satisfaction', align: 'right', numeric: true, render: (r) => r.satisfaction.toFixed(1) + '/5' },
-          { header: '# Inscrits', align: 'right', numeric: true, render: (r) => fmt.num(r.inscrits) },
-        ]}
-      />
-    </div>
-  );
-}
-
-function NPSCard({ nps, prev }) {
-  const d = deltaInfo(nps, prev, { absolute: true });
-  /* NPS scale: -100 to 100. Map nps to 0-100% gauge */
-  const pct = (nps + 100) / 2;
-  const color = nps >= 50 ? T.positive : nps >= 30 ? T.brand : nps >= 0 ? T.warning : T.negative;
-  return (
-    <div className="rounded-md" style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px 22px' }}>
-      <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 500, marginBottom: 8 }}>Student Net Promoter Score</div>
-      <div className="flex items-end gap-6">
-        <div>
-          <div className="flex items-baseline gap-1.5">
-            <span style={{ fontSize: 36, fontWeight: 600, color, letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums' }}>{nps > 0 ? '+' : ''}{nps}</span>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <Delta delta={d} />
-            <span style={{ fontSize: 10.5, color: T.textSubtle }}>Surveyed {SURVEY_DATES.nps}</span>
-          </div>
-        </div>
-        <div className="flex-1 ml-4">
-          <div style={{ fontSize: 10.5, color: T.textMuted, marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
-            <span>−100</span><span>0</span><span>+100</span>
-          </div>
-          <div style={{ height: 10, background: 'linear-gradient(90deg, #C5221F 0%, #F9AB00 50%, #137333 100%)', borderRadius: 5, position: 'relative' }}>
-            <div style={{ position: 'absolute', left: `${pct}%`, top: -4, width: 18, height: 18, background: 'white', border: `3px solid ${color}`, borderRadius: '50%', transform: 'translateX(-50%)' }} />
-          </div>
-          <div className="mt-2" style={{ fontSize: 11, color: T.textMuted }}>Target: <span style={{ fontWeight: 600, color: T.text }}>+50</span> · gap: <span style={{ fontWeight: 600, color: T.warning }}>{50 - nps} pts</span></div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════
-   PANE 7 — GLOSSARY
-   ════════════════════════════════════════════════════════════ */
-function GlossaryPane() {
-  const [search, setSearch] = useState('');
-  const q = search.trim().toLowerCase();
-  const filteredGlossary = q ? GLOSSARY.filter(g => g.term.toLowerCase().includes(q) || g.def.toLowerCase().includes(q) || g.sub.toLowerCase().includes(q)) : GLOSSARY;
-  const filteredTax = q ? TAXONOMY.filter(t => t.term.toLowerCase().includes(q) || t.def.toLowerCase().includes(q)) : TAXONOMY;
-
-  /* Group glossary by sub */
-  const grouped = filteredGlossary.reduce((acc, g) => {
-    (acc[g.sub] = acc[g.sub] || []).push(g);
-    return acc;
-  }, {});
-
-  return (
-    <div>
-      <VoiceOver text="Definitions of every metric, taxonomy term, and platform concept used throughout this cockpit. Search across both sections at once." />
-
-      <div className="mb-6 flex items-center gap-2 rounded-md px-4 py-2.5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-        <Search size={15} style={{ color: T.textMuted }} />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search glossary & taxonomy…"
-          className="flex-1 outline-none"
-          style={{ background: 'transparent', fontSize: 13, color: T.text }}
-        />
-        {search && <button onClick={() => setSearch('')}><X size={15} style={{ color: T.textMuted }} /></button>}
-        <span style={{ fontSize: 11, color: T.textSubtle, marginLeft: 8 }}>
-          {filteredGlossary.length + filteredTax.length} of {GLOSSARY.length + TAXONOMY.length} terms
-        </span>
-      </div>
-
-      {/* A&C Taxonomy section */}
-      <SectionTitle badge="Awareness & Conversion taxonomy">A&C Taxonomy</SectionTitle>
-      <div className="rounded-md mb-8 overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-        <table className="w-full">
-          <thead>
-            <tr style={{ background: T.surfaceAlt, borderBottom: `1px solid ${T.border}` }}>
-              {['Term', 'Definition', 'Identifiant', 'Spécificité', 'Source'].map(h => (
-                <th key={h} style={{ padding: '11px 16px', fontSize: 10.5, fontWeight: 600, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.6px', textAlign: 'left' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTax.map((t, i) => (
-              <tr key={i} style={{ borderBottom: i < filteredTax.length - 1 ? `1px solid ${T.border}` : 'none' }}>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: T.brand, whiteSpace: 'nowrap' }}>{t.term}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12.5, color: T.text }}>{t.def}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12, color: T.textMuted, fontFamily: 'monospace' }}>{t.id}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12, color: T.textMuted }}>{t.spec}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12 }}>
-                  <span className="px-2 py-0.5 rounded" style={{ background: T.brandLight, color: T.brand, fontWeight: 500, fontSize: 11 }}>{t.source}</span>
-                </td>
-              </tr>
-            ))}
-            {filteredTax.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: T.textSubtle, fontSize: 12 }}>No matching taxonomy terms.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Glossary section */}
-      <SectionTitle badge={`${filteredGlossary.length} terms · GA4`}>Platform Glossary</SectionTitle>
-      {Object.keys(grouped).length === 0 && (
-        <div className="rounded-md p-6 text-center" style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.textSubtle, fontSize: 13 }}>
-          No matching terms.
-        </div>
-      )}
-      {Object.entries(grouped).map(([sub, items]) => (
-        <div key={sub} className="rounded-md mb-3 overflow-hidden" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: T.surfaceAlt, borderBottom: `1px solid ${T.border}` }}>
-            <h4 style={{ fontSize: 12, fontWeight: 600, color: T.text, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sub}</h4>
-            <span style={{ fontSize: 11, color: T.textSubtle }}>{items.length} terms</span>
-          </div>
-          <div>
-            {items.map((g, i) => (
-              <div key={i} className="px-4 py-3 flex gap-4" style={{ borderBottom: i < items.length - 1 ? `1px solid ${T.border}` : 'none' }}>
-                <div style={{ width: 220, flexShrink: 0, fontSize: 13, fontWeight: 600, color: T.text }}>{g.term}</div>
-                <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.55 }}>{g.def}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════
-   FLOATING CHATBOT
-   ════════════════════════════════════════════════════════════ */
-const SUGGESTIONS = [
-  'Why is ESD enrollment behind target?',
-  'Which campus has the best CVR?',
-  'Compare Condé Paris vs Condé Bordeaux',
-  'Show me M2 program performance',
+const PANE_DEFS = [
+  { id: 'overall',       label: 'Overall',       icon: 'dashboard', render: paneOverall },
+  { id: 'awareness',     label: 'Awareness',     icon: 'eye', render: paneAwareness, init: initAwarenessCharts },
+  { id: 'consideration', label: 'Consideration', icon: 'heart', render: paneConsideration },
+  { id: 'conversion',    label: 'Conversion',    icon: 'target', render: paneConversion, init: initConversionCharts },
+  { id: 'loyalty',       label: 'Loyalty',       icon: 'cap', render: paneLoyalty, init: initLoyaltyCharts },
+  { id: 'advocacy',      label: 'Advocacy',      icon: 'megaphone', render: paneAdvocacy },
+  { id: 'glossary',      label: 'Glossary',      icon: 'book', render: () => paneGlossary(glossarySearch) },
 ];
 
-function Chatbot() {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-
-  return (
-    <>
-      {!open && (
-        <button onClick={() => setOpen(true)}
-          className="fixed flex items-center gap-2 rounded-full shadow-lg transition-transform hover:scale-105"
-          style={{ bottom: 24, right: 24, background: T.brand, color: 'white', padding: '12px 18px', zIndex: 100, boxShadow: '0 4px 14px rgba(19,115,51,0.35)' }}>
-          <MessageSquare size={16} strokeWidth={2.2} />
-          <span style={{ fontSize: 13, fontWeight: 500 }}>Ask the cockpit</span>
-        </button>
-      )}
-
-      {open && (
-        <div className="fixed flex flex-col rounded-md shadow-2xl"
-             style={{ bottom: 24, right: 24, width: 380, height: 540, background: T.surface, border: `1px solid ${T.borderStrong}`, zIndex: 100 }}>
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${T.border}`, background: T.brand, borderRadius: '6px 6px 0 0' }}>
-            <div className="flex items-center gap-2">
-              <Sparkles size={15} style={{ color: 'white' }} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Conversational analytics</div>
-                <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)' }}>Ask anything about your dashboard</div>
-              </div>
-            </div>
-            <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-white/10">
-              <X size={16} style={{ color: 'white' }} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex gap-2 mb-4">
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.brandLight, color: T.brand, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                <Sparkles size={13} />
-              </div>
-              <div className="rounded-lg px-3 py-2.5" style={{ background: T.bg, fontSize: 12.5, color: T.text, lineHeight: 1.5 }}>
-                Hi! I can help you explore the AD Education performance data. Try one of the suggestions below, or ask me anything about your KPIs, schools, campuses, or programs.
-                <div style={{ fontSize: 10.5, color: T.textSubtle, marginTop: 6, fontStyle: 'italic' }}>Demo · responses are illustrative</div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, marginBottom: 8, marginTop: 4 }}>Suggested questions</div>
-            <div className="flex flex-col gap-2">
-              {SUGGESTIONS.map(s => (
-                <button key={s} onClick={() => setInput(s)}
-                  className="text-left px-3 py-2 rounded transition-colors hover:bg-gray-50"
-                  style={{ background: T.surface, border: `1px solid ${T.border}`, fontSize: 12.5, color: T.text, lineHeight: 1.4 }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-3 flex gap-2" style={{ borderTop: `1px solid ${T.border}` }}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question…"
-              className="flex-1 px-3 py-2 rounded outline-none"
-              style={{ background: T.bg, border: `1px solid ${T.border}`, fontSize: 12.5, color: T.text }}
-            />
-            <button className="px-3 rounded transition-opacity hover:opacity-90"
-              style={{ background: T.brand, color: 'white' }}
-              onClick={() => { /* demo: no-op */ }}>
-              <Send size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = PANE_DEFS.map(p => `
+    <button class="nav-item ${p.id === activePane ? 'active' : ''}" onclick="switchPane('${p.id}')">
+      ${ICONS[p.icon]}
+      <span>${p.label}</span>
+      ${p.hint ? `<span class="hint">${p.hint}</span>` : ''}
+    </button>
+  `).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   APP
-   ════════════════════════════════════════════════════════════ */
-export default function App() {
-  const [active, setActive] = useState('overall');
-
-  const PANE_MAP = {
-    overall:       { title: 'Overall',       Component: OverallPane },
-    awareness:     { title: 'Awareness',     Component: AwarenessPane },
-    consideration: { title: 'Consideration', Component: ConsiderationPane },
-    conversion:    { title: 'Conversion',    Component: ConversionPane },
-    loyalty:       { title: 'Loyalty',       Component: LoyaltyPane },
-    advocacy:      { title: 'Advocacy',      Component: AdvocacyPane },
-    glossary:      { title: 'Glossary',      Component: GlossaryPane },
-  };
-
-  const { title, Component } = PANE_MAP[active];
-
-  return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-        body { font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: ${T.bg}; }
-        ::-webkit-scrollbar-thumb { background: ${T.borderStrong}; border-radius: 5px; border: 2px solid ${T.bg}; }
-        ::-webkit-scrollbar-thumb:hover { background: #BDC1C6; }
-      `}</style>
-
-      <Sidebar active={active} onNav={setActive} />
-      <TopBar paneTitle={title} />
-
-      <main style={{ marginLeft: 240, marginTop: 56, padding: '24px 28px 80px' }}>
-        <Component />
-      </main>
-
-      <Chatbot />
+function renderTopbarFilters() {
+  const r = document.getElementById('topbar-right');
+  r.innerHTML = `
+    <div class="filter-pill" onclick="toggleFilterDropdown(this, event)">
+      <span class="lbl">School</span>
+      <span class="val" id="f-school">All schools</span>
+      <span class="chev">${ICONS.chev}</span>
+      <div class="filter-dropdown">
+        ${['All schools','Condé','ECV','ESP','ESD'].map(o => `<button onclick="setFilter(event, 'f-school', '${o}')">${o}</button>`).join('')}
+      </div>
     </div>
-  );
+    <div class="filter-pill" onclick="toggleFilterDropdown(this, event)">
+      <span class="lbl">Campus</span>
+      <span class="val" id="f-campus">All campuses</span>
+      <span class="chev">${ICONS.chev}</span>
+      <div class="filter-dropdown">
+        ${['All campuses','Paris','Lyon','Bordeaux','Lille','Toulouse','Nantes'].map(o => `<button onclick="setFilter(event, 'f-campus', '${o}')">${o}</button>`).join('')}
+      </div>
+    </div>
+    <div class="filter-pill" onclick="toggleFilterDropdown(this, event)">
+      <span class="lbl">Year</span>
+      <span class="val" id="f-year">All years</span>
+      <span class="chev">${ICONS.chev}</span>
+      <div class="filter-dropdown">
+        ${['All years','B1','B2','B3','M1','M2'].map(o => `<button onclick="setFilter(event, 'f-year', '${o}')">${o}</button>`).join('')}
+      </div>
+    </div>
+    <div class="period-pill">
+      ${ICONS.calendar}
+      <span class="lbl">Period</span>
+      <span style="font-weight:500">FYTD 2025–26</span>
+      <span class="vs">vs. FYTD 2024–25</span>
+    </div>
+    <div class="update-pill">${ICONS.refresh} 27 Apr 2026</div>
+  `;
 }
+
+function switchPane(id) {
+  activePane = id;
+  if (id !== 'glossary') glossarySearch = '';
+  renderNav();
+  const def = PANE_DEFS.find(p => p.id === id);
+  document.getElementById('topbar-title').textContent = def.label;
+  document.getElementById('bc-pane').textContent = def.label;
+  destroyCharts();
+  document.getElementById('main').innerHTML = def.render();
+  /* Init charts after DOM update */
+  if (def.init) setTimeout(def.init, 30);
+  window.scrollTo(0, 0);
+}
+
+function toggleFilterDropdown(el, event) {
+  event.stopPropagation();
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.filter-pill.open').forEach(p => p.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
+function setFilter(event, id, val) {
+  event.stopPropagation();
+  document.getElementById(id).textContent = val;
+  document.querySelectorAll('.filter-pill.open').forEach(p => p.classList.remove('open'));
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.filter-pill.open').forEach(p => p.classList.remove('open'));
+});
+
+/* Glossary search */
+function onGlossarySearch(e) {
+  glossarySearch = e.target.value;
+  /* Re-render only the glossary content; preserve focus */
+  const main = document.getElementById('main');
+  main.innerHTML = paneGlossary(glossarySearch);
+  const input = document.getElementById('glossary-search');
+  if (input) {
+    input.focus();
+    /* Restore cursor to end */
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+}
+
+/* Chatbot */
+function toggleChat(open) {
+  const panel = document.getElementById('chatbot-panel');
+  const fab = document.getElementById('chatbot-fab');
+  if (open) {
+    panel.classList.add('open');
+    fab.style.display = 'none';
+  } else {
+    panel.classList.remove('open');
+    fab.style.display = 'flex';
+  }
+}
+
+function suggestPrompt(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  document.getElementById('chat-input').focus();
+}
+
+/* Init */
+renderNav();
+renderTopbarFilters();
+switchPane('overall');
+</script>
+</body>
+</html>

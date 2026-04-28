@@ -152,12 +152,14 @@ input { font-family: inherit; }
 .filter-dropdown button.active { color: var(--brand); font-weight: 500; }
 
 .period-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border: 1px solid var(--border);
-  background: var(--surface); border-radius: 4px; font-size: 12px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: 4px;
 }
-.period-pill .lbl { color: var(--text-muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
-.period-pill .vs { color: var(--text-subtle); margin-left: 4px; }
+.period-pill svg { width: 13px; height: 13px; color: var(--text-muted); flex-shrink: 0; }
+.period-pill .period-stack { display: flex; flex-direction: column; line-height: 1.25; }
+.period-pill .period-current { font-size: 11.5px; font-weight: 500; color: var(--text); white-space: nowrap; }
+.period-pill .period-compare { font-size: 10px; color: var(--text-subtle); white-space: nowrap; }
 
 .update-pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1637,7 +1639,6 @@ function paneGlossary(searchTerm = '') {
   html += voiceover('Definitions of every metric, taxonomy term, and platform concept used throughout this cockpit. Search across both sections at once.');
 
   html += `<div class="search-bar">
-    ${ICONS.search}
     <input type="text" id="glossary-search" placeholder="Search glossary & taxonomy…" value="${searchTerm.replace(/"/g, '&quot;')}" oninput="onGlossarySearch(event)" />
     ${q ? `<button onclick="document.getElementById('glossary-search').value='';onGlossarySearch({target:{value:''}});">${ICONS.x}</button>` : ''}
     <span class="count">${filteredGlossary.length + filteredTax.length} of ${GLOSSARY.length + TAXONOMY.length} terms</span>
@@ -1835,9 +1836,10 @@ function renderTopbarFilters() {
     </div>
     <div class="period-pill">
       ${ICONS.calendar}
-      <span class="lbl">Period</span>
-      <span style="font-weight:500">FYTD 2025–26</span>
-      <span class="vs">vs. FYTD 2024–25</span>
+      <div class="period-stack">
+        <div class="period-current">FYTD 2025–26</div>
+        <div class="period-compare">vs. FYTD 2024–25</div>
+      </div>
     </div>
     <div class="update-pill">${ICONS.refresh} 27 Apr 2026</div>
   `;
